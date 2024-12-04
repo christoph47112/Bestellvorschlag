@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -191,7 +192,6 @@ def average_sales_app():
 elif navigation == "Anleitung":
     # Anleitung anzeigen
     st.markdown("""
-
     ### Anleitung zur Nutzung dieser App
     1. Bereiten Sie Ihre Abverkaufsdaten vor:
        - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
@@ -212,8 +212,6 @@ elif navigation == "Anleitung":
     
     🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**
     """)
-
-# Modul zur Berechnung der Bestellvorschläge
 
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung")
@@ -246,7 +244,6 @@ def bestellvorschlag_app():
                 st.write("Die Datei wurde heruntergeladen.")
 
 # MultiApp
-
 def main():
     app = MultiApp()
     app.add_app("Durchschnittliche Abverkaufsmengen", average_sales_app)
