@@ -142,10 +142,19 @@ def average_sales_app():
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning")
     st.markdown("In diesem Modul wird ein Machine-Learning-Algorithmus verwendet, um Bestellvorschläge basierend auf Preis und Werbedaten zu generieren.")
+
+    # Upload der Abverkaufsdatei
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
+
+    # Upload des Wochenordersatzes
+    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
+
+    # Upload der Bestände
+    bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
     
-    if abverkauf_file:
+    if abverkauf_file and wochenordersatz_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
+        bestand_df = pd.read_excel(bestand_file)
 
         # Checkbox, um das Modell mit neuen Daten zu trainieren
         if st.checkbox("Modell mit neuen Daten trainieren"):
@@ -158,12 +167,16 @@ def bestellvorschlag_app():
             input_data = abverkauf_df[['Preis', 'Werbung']]
             predictions = predict_orders(model, input_data)
             abverkauf_df['Bestellvorschlag'] = predictions
+
+            # Zusammenführen der Bestände mit den Bestellvorschlägen
+            merged_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
+
             st.write("Bestellvorschläge:")
-            st.dataframe(abverkauf_df)
+            st.dataframe(merged_df)
 
             # Ergebnisse herunterladen
             output = BytesIO()
-            abverkauf_df.to_excel(output, index=False, engine='openpyxl')
+            merged_df.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
             st.download_button(
                 label="Download als Excel",
