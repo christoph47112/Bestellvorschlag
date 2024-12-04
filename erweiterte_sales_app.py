@@ -187,6 +187,32 @@ def average_sales_app():
     st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
     st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
 
+# Anleitung anzeigen
+elif navigation == "Anleitung":
+    # Anleitung anzeigen
+    st.markdown("""
+
+    ### Anleitung zur Nutzung dieser App
+    1. Bereiten Sie Ihre Abverkaufsdaten vor:
+       - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
+       - Speichern Sie die Datei im Excel-Format.
+    2. Laden Sie Ihre Datei hoch:
+       - Nutzen Sie die Schaltfläche **„Durchsuchen“**, um Ihre Datei auszuwählen.
+    3. Überprüfen Sie die berechneten Ergebnisse:
+       - Die App zeigt die durchschnittlichen Abverkaufsmengen pro Woche an.
+    4. Filtern und suchen Sie die Ergebnisse (optional):
+       - Nutzen Sie das Filterfeld in der Seitenleiste, um nach bestimmten Artikeln zu suchen.
+    5. Vergleichen Sie die Ergebnisse (optional):
+       - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
+    6. Laden Sie die Ergebnisse herunter:
+       - Nutzen Sie die Schaltfläche **„Ergebnisse herunterladen“**, um die berechneten Daten zu speichern.
+
+    ---
+    ⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.
+    
+    🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**
+    """)
+
 # Modul zur Berechnung der Bestellvorschläge
 
 def bestellvorschlag_app():
