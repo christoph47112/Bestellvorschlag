@@ -5,6 +5,7 @@ import pickle
 from io import BytesIO
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Page Configuration
 st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen und Bestellvorschlag mit Machine Learning", layout="wide")
@@ -40,6 +41,10 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Zentraler DataFrame, um Bestellvorschläge und Anpassungen im Speicher zu halten
+if 'bestellvorschlag_df' not in st.session_state:
+    st.session_state.bestellvorschlag_df = pd.DataFrame()
+
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning")
@@ -50,6 +55,7 @@ def bestellvorschlag_app():
     3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalte 'Artikelnummer' und 'Bestand' enthalten.
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
     """)
 
     # Upload der Dateien
@@ -74,14 +80,25 @@ def bestellvorschlag_app():
             abverkauf_df['Bestellvorschlag'] = predictions
 
             # Zusammenführen der Bestände mit den Bestellvorschlägen
-            merged_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
+            st.session_state.bestellvorschlag_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
 
             st.write("Bestellvorschläge:")
-            st.dataframe(merged_df)
+            for index in st.session_state.bestellvorschlag_df.index:
+                st.session_state.bestellvorschlag_df.at[index, 'Anpassung'] = st.number_input(
+                    f"Anpassung für Artikelnummer {st.session_state.bestellvorschlag_df.at[index, 'Artikelnummer']}",
+                    min_value=0,
+                    value=int(st.session_state.bestellvorschlag_df.at[index, 'Bestellvorschlag']),
+                    step=1
+                )
+
+            # Feedback speichern
+            if st.button("Feedback speichern"):
+                st.session_state.bestellvorschlag_df['Manuelle Anpassung'] = st.session_state.bestellvorschlag_df['Anpassung']
+                st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
             # Ergebnisse herunterladen
             output = BytesIO()
-            merged_df.to_excel(output, index=False, engine='openpyxl')
+            st.session_state.bestellvorschlag_df.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
             st.download_button(
                 label="Download als Excel",
