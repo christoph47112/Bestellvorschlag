@@ -42,16 +42,17 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
     for artikelnummer in artikelnummern:
         # Bestand für den Artikel finden
         bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
+        artikelname = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Artikelname'].values[0]
         
         # Verbrauch aus der besten Woche finden
         gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
         
         # Bestellvorschlag berechnen
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
+        bestellvorschläge.append((artikelnummer, artikelname, gesamtverbrauch, bestand, bestellvorschlag))
     
     # Ergebnisse in DataFrame umwandeln
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Artikelname', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
     return result_df
 
 def process_sales_data(dataframe):
@@ -188,6 +189,30 @@ def average_sales_app():
                             st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
                             st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
 
+    elif navigation == "Anleitung":
+        # Anleitung anzeigen
+        st.markdown("""
+        ### Anleitung zur Nutzung dieser App
+        1. Bereiten Sie Ihre Abverkaufsdaten vor:
+           - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
+           - Speichern Sie die Datei im Excel-Format.
+        2. Laden Sie Ihre Datei hoch:
+           - Nutzen Sie die Schaltfläche **„Durchsuchen“**, um Ihre Datei auszuwählen.
+        3. Überprüfen Sie die berechneten Ergebnisse:
+           - Die App zeigt die durchschnittlichen Abverkaufsmengen pro Woche an.
+        4. Filtern und suchen Sie die Ergebnisse (optional):
+           - Nutzen Sie das Filterfeld in der Seitenleiste, um nach bestimmten Artikeln zu suchen.
+        5. Vergleichen Sie die Ergebnisse (optional):
+           - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
+        6. Laden Sie die Ergebnisse herunter:
+           - Nutzen Sie die Schaltfläche **„Ergebnisse herunterladen“**, um die berechneten Daten zu speichern.
+
+        ---
+        ⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.
+        
+        🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**
+        """)
+
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung")
     st.write("Laden Sie die notwendigen Dateien hoch und berechnen Sie die Bestellvorschläge.")
@@ -228,8 +253,7 @@ def bestellvorschlag_app():
 def main():
     app = MultiApp()
     app.add_app("Durchschnittliche Abverkaufsmengen", average_sales_app)
-    app.add_app("Bestellvorschlag Modul", bestellvorschlag_app)
-
+    app.add_app("Bestellvorschlag Berechnung", bestellvorschlag_app)
     app.run()
 
 if __name__ == "__main__":
