@@ -1,6 +1,9 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from io import BytesIO
+
+# Page Configuration
+st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen", layout="wide")
 
 class MultiApp:
     def __init__(self):
@@ -67,10 +70,6 @@ def process_sales_data(dataframe):
     return sorted_sales
 
 def average_sales_app():
-    # Title and Page Layout
-    if "_configured" not in st.session_state:
-        st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen", layout="wide")
-        st.session_state["_configured"] = True
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
 
     # Beispieldatei vorbereiten
@@ -194,22 +193,27 @@ def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung")
     st.write("Laden Sie die notwendigen Dateien hoch und berechnen Sie die Bestellvorschläge.")
 
-    bestand_file = st.file_uploader("Bestand Datei hochladen (Excel)", type=["xlsx"])
+    # Dateien hochladen
+    wochenordersatz_file = st.file_uploader("Wochenordersatz Datei hochladen (PDF)", type=["pdf"])
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
+    bestand_file = st.file_uploader("Bestand Datei hochladen (Excel)", type=["xlsx"])
 
-    if bestand_file and abverkauf_file:
-        bestand_df = pd.read_excel(bestand_file)
+    if wochenordersatz_file and abverkauf_file and bestand_file:
+        # Abverkauf und Bestandsdaten laden
         abverkauf_df = pd.read_excel(abverkauf_file)
+        bestand_df = pd.read_excel(bestand_file)
 
         artikelnummern = st.text_input("Artikelnummern eingeben (kommagetrennt)")
         if artikelnummern:
             artikelnummern = [int(x.strip()) for x in artikelnummern.split(",")]
             sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
+            # Bestellvorschläge berechnen
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.write("Bestellvorschläge:")
             st.dataframe(result_df)
 
+            # Ergebnisse herunterladen
             download_link = st.button("Download als Excel")
             if download_link:
                 result_df.to_excel("bestellvorschlag.xlsx", index=False)
