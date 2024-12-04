@@ -40,6 +40,57 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Streamlit App für Bestellvorschlag
+def bestellvorschlag_app():
+    st.title("Bestellvorschlag Berechnung mit Machine Learning")
+    st.markdown("""
+    ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
+    1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Abverkauf' enthalten.
+    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalte 'Artikelnummer' und 'Bestand' enthalten.
+    4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
+    5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    """)
+
+    # Upload der Dateien
+    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
+    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
+    bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
+
+    if wochenordersatz_file and abverkauf_file and bestand_file:
+        abverkauf_df = pd.read_excel(abverkauf_file)
+        bestand_df = pd.read_excel(bestand_file)
+
+        # Checkbox, um das Modell mit neuen Daten zu trainieren
+        if st.checkbox("Modell mit neuen Daten trainieren"):
+            train_model(abverkauf_df)
+            st.write("Modell wurde mit den neuen Daten trainiert.")
+
+        # Vorhersagen treffen
+        try:
+            model = load_model()
+            input_data = abverkauf_df[['Preis', 'Werbung']]
+            predictions = predict_orders(model, input_data)
+            abverkauf_df['Bestellvorschlag'] = predictions
+
+            # Zusammenführen der Bestände mit den Bestellvorschlägen
+            merged_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
+
+            st.write("Bestellvorschläge:")
+            st.dataframe(merged_df)
+
+            # Ergebnisse herunterladen
+            output = BytesIO()
+            merged_df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                label="Download als Excel",
+                data=output,
+                file_name="bestellvorschlag.xlsx"
+            )
+        except FileNotFoundError:
+            st.error("Kein trainiertes Modell gefunden. Trainieren Sie das Modell zuerst mit neuen Daten.")
+
 # Durchschnittliche Abverkaufsmengen App
 def average_sales_app():
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
@@ -138,68 +189,14 @@ def average_sales_app():
                     merged_results = result.merge(compare_result, on='Artikel', suffixes=('_Original', '_Vergleich'))
                     st.dataframe(merged_results)
 
-# Streamlit App für Bestellvorschlag
-def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung mit Machine Learning")
-    st.markdown("In diesem Modul wird ein Machine-Learning-Algorithmus verwendet, um Bestellvorschläge basierend auf Preis und Werbedaten zu generieren.")
-
-    # Upload der Abverkaufsdatei
-    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
-
-    # Upload des Wochenordersatzes
-    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
-
-    # Upload der Bestände
-    bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
-    
-    if abverkauf_file and wochenordersatz_file and bestand_file:
-        abverkauf_df = pd.read_excel(abverkauf_file)
-        bestand_df = pd.read_excel(bestand_file)
-
-        # Checkbox, um das Modell mit neuen Daten zu trainieren
-        if st.checkbox("Modell mit neuen Daten trainieren"):
-            train_model(abverkauf_df)
-            st.write("Modell wurde mit den neuen Daten trainiert.")
-
-        # Vorhersagen treffen
-        try:
-            model = load_model()
-            input_data = abverkauf_df[['Preis', 'Werbung']]
-            predictions = predict_orders(model, input_data)
-            abverkauf_df['Bestellvorschlag'] = predictions
-
-            # Zusammenführen der Bestände mit den Bestellvorschlägen
-            merged_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
-
-            st.write("Bestellvorschläge:")
-            st.dataframe(merged_df)
-
-            # Ergebnisse herunterladen
-            output = BytesIO()
-            merged_df.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
-            st.download_button(
-                label="Download als Excel",
-                data=output,
-                file_name="bestellvorschlag.xlsx"
-            )
-        except FileNotFoundError:
-            st.error("Kein trainiertes Modell gefunden. Trainieren Sie das Modell zuerst mit neuen Daten.")
-
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
     st.sidebar.title("Modul wechseln")
-    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Durchschnittliche Abverkaufsmengen", "Bestellvorschlag Berechnung mit Machine Learning"])
+    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning", "Durchschnittliche Abverkaufsmengen"])
     
-    if app_selection == "Durchschnittliche Abverkaufsmengen":
-        average_sales_app()
-    elif app_selection == "Bestellvorschlag Berechnung mit Machine Learning":
+    if app_selection == "Bestellvorschlag Berechnung mit Machine Learning":
         bestellvorschlag_app()
+    elif app_selection == "Durchschnittliche Abverkaufsmengen":
+        average_sales_app()
 
-    # Credits und Datenschutz
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
-    st.sidebar.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**")
-
-if __name__ == "__main__":
-    main()
+    #
