@@ -68,7 +68,9 @@ def process_sales_data(dataframe):
 
 def average_sales_app():
     # Title and Page Layout
-    st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen", layout="wide")
+    if "_configured" not in st.session_state:
+        st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen", layout="wide")
+        st.session_state["_configured"] = True
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
 
     # Beispieldatei vorbereiten
