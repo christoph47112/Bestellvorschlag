@@ -1,8 +1,21 @@
-
 import pandas as pd
 import streamlit as st
 from io import BytesIO
-from multiapp import MultiApp
+
+class MultiApp:
+    def __init__(self):
+        self.apps = []
+
+    def add_app(self, title, func):
+        self.apps.append({"title": title, "function": func})
+
+    def run(self):
+        app = st.sidebar.selectbox(
+            'Navigation',
+            self.apps,
+            format_func=lambda app: app['title']
+        )
+        app['function']()
 
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     """
