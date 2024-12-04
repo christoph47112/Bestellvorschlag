@@ -88,7 +88,8 @@ def bestellvorschlag_app():
                     f"Anpassung für Artikelnummer {st.session_state.bestellvorschlag_df.at[index, 'Artikelnummer']}",
                     min_value=0,
                     value=int(st.session_state.bestellvorschlag_df.at[index, 'Bestellvorschlag']),
-                    step=1
+                    step=1,
+                    key=f"input_{index}"
                 )
 
             # Feedback speichern
