@@ -8,7 +8,7 @@ import seaborn as sns
 import os
 
 # Page Configuration
-st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen und Bestellvorschlag mit Machine Learning", layout="wide")
+st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
