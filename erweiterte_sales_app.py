@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -21,19 +22,15 @@ class MultiApp:
         app['function']()
 
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
-    """
-    Berechnet Bestellvorschläge basierend auf dem besten vergangenen Wochenabverkauf und einem Sicherheitsfaktor.
+    # Berechnet Bestellvorschläge basierend auf dem besten vergangenen Wochenabverkauf und einem Sicherheitsfaktor.
+    # :param bestand_df: DataFrame mit Bestandsdaten (enthält 'Artikelnummer' und 'Bestand Vortag in Stück (ST)')
+    # :param abverkauf_df: DataFrame mit Abverkaufsdaten (enthält 'Artikelnummer', 'ø-Aktionspreis', 'Menge Aktion')
+    # :param artikelnummern: Liste der Artikelnummern, für die der Bestellvorschlag berechnet werden soll
+    # :param sicherheitsfaktor: Sicherheitsfaktor (default: 0.1)
+    # :return: DataFrame mit Bestellvorschlägen
     
-    :param bestand_df: DataFrame mit Bestandsdaten (enthält 'Artikelnummer' und 'Bestand Vortag in Stück (ST)')
-    :param abverkauf_df: DataFrame mit Abverkaufsdaten (enthält 'Artikelnummer', 'ø-Aktionspreis', 'Menge Aktion')
-    :param artikelnummern: Liste der Artikelnummern, für die der Bestellvorschlag berechnet werden soll
-    :param sicherheitsfaktor: Sicherheitsfaktor (default: 0.1)
-    :return: DataFrame mit Bestellvorschlägen
-    """
     def find_best_week_consumption(article_number, abverkauf_df):
-        """
-        Findet den besten Wochenabverkauf basierend auf ähnlichem Preis.
-        """
+        # Findet den besten Wochenabverkauf basierend auf ähnlichem Preis.
         article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
         
@@ -126,7 +123,8 @@ def average_sales_app():
 
                 # Ergebnisse anzeigen
                 st.subheader("Ergebnisse")
-                
+                st.dataframe(result)
+
                 # Credits und Datenschutz
                 st.markdown("---")
                 st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
@@ -184,34 +182,12 @@ def average_sales_app():
                             # Ergebnisse der beiden Dateien nebeneinander anzeigen
                             st.subheader("Vergleich der beiden Dateien")
                             merged_results = result.merge(compare_result, on='Artikel', suffixes=('_Original', '_Vergleich'))
-                            
-        # Credits und Datenschutz
-        st.markdown("---")
-        st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
-        st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
-    elif navigation == "Anleitung":
-        # Anleitung anzeigen
-        st.markdown("""
-        ### Anleitung zur Nutzung dieser App
-        1. Bereiten Sie Ihre Abverkaufsdaten vor:
-           - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
-           - Speichern Sie die Datei im Excel-Format.
-        2. Laden Sie Ihre Datei hoch:
-           - Nutzen Sie die Schaltfläche **„Durchsuchen“**, um Ihre Datei auszuwählen.
-        3. Überprüfen Sie die berechneten Ergebnisse:
-           - Die App zeigt die durchschnittlichen Abverkaufsmengen pro Woche an.
-        4. Filtern und suchen Sie die Ergebnisse (optional):
-           - Nutzen Sie das Filterfeld in der Seitenleiste, um nach bestimmten Artikeln zu suchen.
-        5. Vergleichen Sie die Ergebnisse (optional):
-           - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
-        6. Laden Sie die Ergebnisse herunter:
-           - Nutzen Sie die Schaltfläche **„Ergebnisse herunterladen“**, um die berechneten Daten zu speichern.
+                            st.dataframe(merged_results)
 
-        ---
-        ⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.
-        
-        🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**
-        """)
+                            # Credits und Datenschutz
+                            st.markdown("---")
+                            st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
+                            st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
 
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung")
@@ -238,10 +214,14 @@ def bestellvorschlag_app():
             st.dataframe(result_df)
 
             # Ergebnisse herunterladen
-            download_link = st.button("Download als Excel")
-            if download_link:
-                result_df.to_excel("bestellvorschlag.xlsx", index=False)
-                st.write("Die Datei wurde heruntergeladen.")
+            output = BytesIO()
+            result_df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                label="Download als Excel",
+                data=output,
+                file_name="bestellvorschlag.xlsx"
+            )
 
 # MultiApp
 
