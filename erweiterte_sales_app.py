@@ -1,10 +1,69 @@
 import streamlit as st
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+import pickle
 from io import BytesIO
 
 # Page Configuration
-st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen", layout="wide")
+st.set_page_config(page_title="Berechnung der Ø Abverkaufsmengen und Bestellvorschlag mit Machine Learning", layout="wide")
 
+# Funktion zum Trainieren des Modells
+def train_model(train_data):
+    X = train_data[['Preis', 'Werbung']]
+    y = train_data['Abverkauf']
+    
+    # Lineares Regressionsmodell erstellen und trainieren
+    model = LinearRegression()
+    model.fit(X, y)
+    
+    # Modell speichern
+    with open('/mnt/data/model.pkl', 'wb') as file:
+        pickle.dump(model, file)
+
+# Funktion zum Laden des Modells
+def load_model():
+    with open('/mnt/data/model.pkl', 'rb') as file:
+        return pickle.load(file)
+
+# Vorhersagefunktion
+def predict_orders(model, input_data):
+    return model.predict(input_data)
+
+# Streamlit App für Bestellvorschlag
+def bestellvorschlag_app():
+    st.title("Bestellvorschlag Berechnung mit Machine Learning")
+    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
+    
+    if abverkauf_file:
+        abverkauf_df = pd.read_excel(abverkauf_file)
+
+        # Checkbox, um das Modell mit neuen Daten zu trainieren
+        if st.checkbox("Modell mit neuen Daten trainieren"):
+            train_model(abverkauf_df)
+            st.write("Modell wurde mit den neuen Daten trainiert.")
+
+        # Vorhersagen treffen
+        try:
+            model = load_model()
+            input_data = abverkauf_df[['Preis', 'Werbung']]
+            predictions = predict_orders(model, input_data)
+            abverkauf_df['Bestellvorschlag'] = predictions
+            st.write("Bestellvorschläge:")
+            st.dataframe(abverkauf_df)
+
+            # Ergebnisse herunterladen
+            output = BytesIO()
+            abverkauf_df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                label="Download als Excel",
+                data=output,
+                file_name="bestellvorschlag.xlsx"
+            )
+        except FileNotFoundError:
+            st.error("Kein trainiertes Modell gefunden. Trainieren Sie das Modell zuerst mit neuen Daten.")
+
+# MultiApp
 class MultiApp:
     def __init__(self):
         self.apps = []
@@ -14,62 +73,16 @@ class MultiApp:
 
     def run(self):
         app = st.sidebar.selectbox(
-            'Navigation',
+            'Modul Wechseln',
             self.apps,
             format_func=lambda app: app['title']
         )
         app['function']()
 
-def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
-    # Berechnet Bestellvorschläge basierend auf dem besten vergangenen Wochenabverkauf und einem Sicherheitsfaktor.
-    # :param bestand_df: DataFrame mit Bestandsdaten (enthält 'Artikelnummer' und 'Bestand Vortag in Stück (ST)')
-    # :param abverkauf_df: DataFrame mit Abverkaufsdaten (enthält 'Artikelnummer', 'ø-Aktionspreis', 'Menge Aktion')
-    # :param artikelnummern: Liste der Artikelnummern, für die der Bestellvorschlag berechnet werden soll
-    # :param sicherheitsfaktor: Sicherheitsfaktor (default: 0.1)
-    # :return: DataFrame mit Bestellvorschlägen
-    
-    def find_best_week_consumption(article_number, abverkauf_df):
-        # Findet den besten Wochenabverkauf basierend auf ähnlichem Preis.
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
-        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
-        
-        if not article_data.empty:
-            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
-            return best_week_row['Menge Aktion']
-        return 0
-
-    bestellvorschläge = []
-    for artikelnummer in artikelnummern:
-        # Bestand für den Artikel finden
-        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
-        artikelname = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Artikelname'].values[0]
-        
-        # Verbrauch aus der besten Woche finden
-        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
-        
-        # Bestellvorschlag berechnen
-        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, artikelname, gesamtverbrauch, bestand, bestellvorschlag))
-    
-    # Ergebnisse in DataFrame umwandeln
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Artikelname', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
-    return result_df
-
-def process_sales_data(dataframe):
-    # Berechne den durchschnittlichen Abverkauf pro Artikel
-    average_sales = dataframe.groupby('Artikel')['Menge'].mean().reset_index()
-    average_sales.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
-    
-    # Behalte die ursprüngliche Reihenfolge der Artikel bei
-    sorted_sales = dataframe[['Artikel', 'Name']].drop_duplicates().merge(
-        average_sales, on='Artikel', how='left'
-    )
-    return sorted_sales
-
+# Durchschnittliche Abverkaufsmengen App (Beispiel aus vorherigem Modul)
 def average_sales_app():
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
-
-    # Beispieldatei vorbereiten
+    
     example_data = {
         "Artikel": ["001", "001", "001", "002", "002", "002", "003", "003", "003"],
         "Name": ["Milch 1L", "Milch 1L", "Milch 1L", "Butter 250g", "Butter 250g", "Butter 250g", "Käse 500g", "Käse 500g", "Käse 500g"],
@@ -80,10 +93,10 @@ def average_sales_app():
     example_file = BytesIO()
     example_df.to_excel(example_file, index=False, engine='openpyxl')
     example_file.seek(0)
-
+    
     # Sidebar: Navigation und Beispieldatei
     st.sidebar.header("Menü")
-    navigation = st.sidebar.radio("Navigation", ["Modul", "Anleitung"])
+    navigation = st.sidebar.radio("Modul Wechseln", ["Durchschnittliche Abverkaufsmengen", "Bestellvorschlag Berechnung mit Machine Learning", "Anleitung", "Bestellvorschlag Anleitung"])
     st.sidebar.download_button(
         label="Beispieldatei herunterladen",
         data=example_file,
@@ -91,7 +104,7 @@ def average_sales_app():
     )
 
     # Modul anzeigen
-    if navigation == "Modul":
+    if navigation == "Durchschnittliche Abverkaufsmengen":
         # Datei-Uploader
         uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
 
@@ -205,56 +218,4 @@ def average_sales_app():
         5. Vergleichen Sie die Ergebnisse (optional):
            - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
         6. Laden Sie die Ergebnisse herunter:
-           - Nutzen Sie die Schaltfläche **„Ergebnisse herunterladen“**, um die berechneten Daten zu speichern.
-
-        ---
-        ⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.
-        
-        🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**
-        """)
-
-def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung")
-    st.write("Laden Sie die notwendigen Dateien hoch und berechnen Sie die Bestellvorschläge.")
-
-    # Dateien hochladen
-    wochenordersatz_file = st.file_uploader("Wochenordersatz Datei hochladen (PDF)", type=["pdf"])
-    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
-    bestand_file = st.file_uploader("Bestand Datei hochladen (Excel)", type=["xlsx"])
-
-    if wochenordersatz_file and abverkauf_file and bestand_file:
-        # Abverkauf und Bestandsdaten laden
-        abverkauf_df = pd.read_excel(abverkauf_file)
-        bestand_df = pd.read_excel(bestand_file)
-
-        # Auswahl der Anzahl der Artikel
-        artikel_anzahl = st.slider("Anzahl der Artikel für Bestellvorschlag", min_value=1, max_value=len(bestand_df), value=5)
-        artikelnummern = bestand_df['Artikelnummer'].unique()[:artikel_anzahl]
-
-        sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
-
-        # Bestellvorschläge berechnen
-        result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
-        st.write("Bestellvorschläge:")
-        st.dataframe(result_df)
-
-        # Ergebnisse herunterladen
-        output = BytesIO()
-        result_df.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-        st.download_button(
-            label="Download als Excel",
-            data=output,
-            file_name="bestellvorschlag.xlsx"
-        )
-
-# MultiApp
-
-def main():
-    app = MultiApp()
-    app.add_app("Durchschnittliche Abverkaufsmengen", average_sales_app)
-    app.add_app("Bestellvorschlag Berechnung", bestellvorschlag_app)
-    app.run()
-
-if __name__ == "__main__":
-    main()
+           - Nutzen Sie die Schaltfläche **„Ergebnisse herunterladen"
