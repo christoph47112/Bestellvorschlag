@@ -40,6 +40,104 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Durchschnittliche Abverkaufsmengen App
+def average_sales_app():
+    st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
+    
+    st.markdown("""
+    ### Anleitung zur Nutzung dieser App
+    1. Bereiten Sie Ihre Abverkaufsdaten vor:
+       - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
+       - Speichern Sie die Datei im Excel-Format.
+    2. Laden Sie Ihre Datei hoch:
+       - Nutzen Sie die Schaltfläche **„Durchsuchen“**, um Ihre Datei auszuwählen.
+    3. Überprüfen Sie die berechneten Ergebnisse:
+       - Die App zeigt die durchschnittlichen Abverkaufsmengen pro Woche an.
+    4. Filtern und suchen Sie die Ergebnisse (optional):
+       - Nutzen Sie das Filterfeld in der Seitenleiste, um nach bestimmten Artikeln zu suchen.
+    5. Vergleichen Sie die Ergebnisse (optional):
+       - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
+    """)
+
+    # Beispieldatei erstellen
+    example_data = {
+        "Artikel": ["001", "001", "001", "002", "002", "002", "003", "003", "003"],
+        "Name": ["Milch 1L", "Milch 1L", "Milch 1L", "Butter 250g", "Butter 250g", "Butter 250g", "Käse 500g", "Käse 500g", "Käse 500g"],
+        "Woche": [1, 2, 3, 1, 2, 3, 1, 2, 3],
+        "Menge": [100, 120, 110, 150, 140, 160, 200, 210, 190]
+    }
+    example_df = pd.DataFrame(example_data)
+    example_file = BytesIO()
+    example_df.to_excel(example_file, index=False, engine='openpyxl')
+    example_file.seek(0)
+    
+    # Datei-Uploader
+    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
+    
+    # Beispieldatei Download
+    st.sidebar.download_button(
+        label="Beispieldatei herunterladen",
+        data=example_file,
+        file_name="beispiel_abverkauf.xlsx"
+    )
+    
+    if uploaded_file:
+        # Excel-Datei laden und verarbeiten
+        data = pd.ExcelFile(uploaded_file)
+        sheet_name = st.sidebar.selectbox("Wählen Sie das Blatt aus", data.sheet_names)  # Blattauswahl ermöglichen
+        df = data.parse(sheet_name)
+
+        # Erweiterte Datenvalidierung
+        required_columns = {"Artikel", "Woche", "Menge", "Name"}
+        if not required_columns.issubset(df.columns):
+            st.error("Fehler: Die Datei muss die Spalten 'Artikel', 'Woche', 'Menge' und 'Name' enthalten.")
+        elif df.isnull().values.any():
+            st.error("Fehler: Die Datei enthält fehlende Werte. Bitte stellen Sie sicher, dass alle Zellen ausgefüllt sind.")
+        else:
+            # Filter- und Suchmöglichkeiten
+            artikel_filter = st.sidebar.text_input("Nach Artikel filtern (optional)")
+            artikel_name_filter = st.sidebar.text_input("Nach Artikelname filtern (optional)")
+
+            if artikel_filter:
+                df = df[df['Artikel'].astype(str).str.contains(artikel_filter, case=False, na=False)]
+
+            if artikel_name_filter:
+                df = df[df['Name'].str.contains(artikel_name_filter, case=False, na=False)]
+
+            # Durchschnittliche Abverkaufsmengen berechnen
+            result = df.groupby('Artikel').agg({'Menge': 'mean'}).reset_index()
+            result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+
+            # Ergebnisse anzeigen
+            st.subheader("Ergebnisse")
+            st.dataframe(result)
+
+            # Fortschrittsanzeige
+            st.info("Verarbeitung abgeschlossen. Die Ergebnisse stehen zur Verfügung.")
+
+            # Ergebnisse herunterladen
+            output = BytesIO()
+            result.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                label="Ergebnisse herunterladen",
+                data=output,
+                file_name="durchschnittliche_abverkaeufe.xlsx"
+            )
+
+            # Vergleich von Ergebnissen ermöglichen
+            if st.checkbox("Vergleiche mit einer anderen Datei anzeigen"):
+                uploaded_file_compare = st.file_uploader("Vergleichsdatei hochladen (Excel)", type=["xlsx"], key="compare")
+                if uploaded_file_compare:
+                    compare_data = pd.read_excel(uploaded_file_compare)
+                    compare_result = compare_data.groupby('Artikel').agg({'Menge': 'mean'}).reset_index()
+                    compare_result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+
+                    # Ergebnisse der beiden Dateien nebeneinander anzeigen
+                    st.subheader("Vergleich der beiden Dateien")
+                    merged_results = result.merge(compare_result, on='Artikel', suffixes=('_Original', '_Vergleich'))
+                    st.dataframe(merged_results)
+
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning")
@@ -75,120 +173,20 @@ def bestellvorschlag_app():
         except FileNotFoundError:
             st.error("Kein trainiertes Modell gefunden. Trainieren Sie das Modell zuerst mit neuen Daten.")
 
-# MultiApp
-class MultiApp:
-    def __init__(self):
-        self.apps = []
-
-    def add_app(self, title, func):
-        self.apps.append({"title": title, "function": func})
-
-    def run(self):
-        app = st.sidebar.selectbox(
-            'Modul Wechseln',
-            self.apps,
-            format_func=lambda app: app['title']
-        )
-        app['function']()
-
-# Durchschnittliche Abverkaufsmengen App (Beispiel aus vorherigem Modul)
-def average_sales_app():
-    st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
-    
-    example_data = {
-        "Artikel": ["001", "001", "001", "002", "002", "002", "003", "003", "003"],
-        "Name": ["Milch 1L", "Milch 1L", "Milch 1L", "Butter 250g", "Butter 250g", "Butter 250g", "Käse 500g", "Käse 500g", "Käse 500g"],
-        "Woche": [1, 2, 3, 1, 2, 3, 1, 2, 3],
-        "Menge": [100, 120, 110, 150, 140, 160, 200, 210, 190]
-    }
-    example_df = pd.DataFrame(example_data)
-    example_file = BytesIO()
-    example_df.to_excel(example_file, index=False, engine='openpyxl')
-    example_file.seek(0)
-    
-    # Sidebar: Navigation und Beispieldatei
-    st.sidebar.header("Menü")
-    navigation = st.sidebar.radio("Modul Wechseln", ["Durchschnittliche Abverkaufsmengen", "Bestellvorschlag Berechnung mit Machine Learning", "Anleitung", "Bestellvorschlag Anleitung"])
-    st.sidebar.download_button(
-        label="Beispieldatei herunterladen",
-        data=example_file,
-        file_name="beispiel_abverkauf.xlsx"
-    )
-
-    # Modul anzeigen
-    if navigation == "Durchschnittliche Abverkaufsmengen":
-        # Datei-Uploader
-        uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
-
-        if uploaded_file:
-            # Excel-Datei laden und verarbeiten
-            data = pd.ExcelFile(uploaded_file)
-            sheet_name = st.sidebar.selectbox("Wählen Sie das Blatt aus", data.sheet_names)  # Blattauswahl ermöglichen
-            df = data.parse(sheet_name)
-
-            # Erweiterte Datenvalidierung
-            required_columns = {"Artikel", "Woche", "Menge", "Name"}
-            if not required_columns.issubset(df.columns):
-                st.error("Fehler: Die Datei muss die Spalten 'Artikel', 'Woche', 'Menge' und 'Name' enthalten.")
-            elif df.isnull().values.any():
-                st.error("Fehler: Die Datei enthält fehlende Werte. Bitte stellen Sie sicher, dass alle Zellen ausgefüllt sind.")
-            else:
-                # Filter- und Suchmöglichkeiten
-                artikel_filter = st.sidebar.text_input("Nach Artikel filtern (optional)")
-                artikel_name_filter = st.sidebar.text_input("Nach Artikelname filtern (optional)")
-
-                if artikel_filter:
-                    df = df[df['Artikel'].astype(str).str.contains(artikel_filter, case=False, na=False)]
-
-                if artikel_name_filter:
-                    df = df[df['Name'].str.contains(artikel_name_filter, case=False, na=False)]
-
-                # Daten verarbeiten
-                result = process_sales_data(df)
-
-                # Ergebnisse anzeigen
-                st.subheader("Ergebnisse")
-                st.dataframe(result)
-
-                # Credits und Datenschutz
-                st.markdown("---")
-                st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
-                st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
-
-                # Fortschrittsanzeige
-                st.info("Verarbeitung abgeschlossen. Die Ergebnisse stehen zur Verfügung.")
-
-                # Exportformat wählen
-                export_format = st.radio(
-                    "Wählen Sie das Exportformat:",
-                    ["Excel (empfohlen)", "CSV"],
-                    index=0
-                )
-
-                # Ergebnisse herunterladen
-                if export_format == "Excel (empfohlen)":
-                    output = BytesIO()
-                    result.to_excel(output, index=False, engine='openpyxl')
-                    output.seek(0)
-                    st.download_button(
-                        label="Ergebnisse herunterladen",
-                        data=output,
-                        file_name="durchschnittliche_abverkaeufe.xlsx"
-                    )
-                elif export_format == "CSV":
-                    csv_output = result.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Ergebnisse herunterladen",
-                        data=csv_output,
-                        file_name="durchschnittliche_abverkaeufe.csv"
-                    )
-
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
-    app = MultiApp()
-    app.add_app("Durchschnittliche Abverkaufsmengen", average_sales_app)
-    app.add_app("Bestellvorschlag Berechnung mit Machine Learning", bestellvorschlag_app)
-    app.run()
+    st.sidebar.title("Modul wechseln")
+    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Durchschnittliche Abverkaufsmengen", "Bestellvorschlag Berechnung mit Machine Learning"])
+    
+    if app_selection == "Durchschnittliche Abverkaufsmengen":
+        average_sales_app()
+    elif app_selection == "Bestellvorschlag Berechnung mit Machine Learning":
+        bestellvorschlag_app()
+
+    # Credits und Datenschutz
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
+    st.sidebar.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**")
 
 if __name__ == "__main__":
     main()
