@@ -199,4 +199,10 @@ def main():
     elif app_selection == "Durchschnittliche Abverkaufsmengen":
         average_sales_app()
 
-    #
+    # Credits und Datenschutz
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
+    st.sidebar.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**")
+
+if __name__ == "__main__":
+    main()
