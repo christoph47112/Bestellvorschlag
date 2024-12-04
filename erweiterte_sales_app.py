@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -203,25 +202,26 @@ def bestellvorschlag_app():
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
 
-        artikelnummern = st.text_input("Artikelnummern eingeben (kommagetrennt)")
-        if artikelnummern:
-            artikelnummern = [int(x.strip()) for x in artikelnummern.split(",")]
-            sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
+        # Auswahl der Anzahl der Artikel
+        artikel_anzahl = st.slider("Anzahl der Artikel für Bestellvorschlag", min_value=1, max_value=len(bestand_df), value=5)
+        artikelnummern = bestand_df['Artikelnummer'].unique()[:artikel_anzahl]
 
-            # Bestellvorschläge berechnen
-            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
-            st.write("Bestellvorschläge:")
-            st.dataframe(result_df)
+        sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
-            # Ergebnisse herunterladen
-            output = BytesIO()
-            result_df.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
-            st.download_button(
-                label="Download als Excel",
-                data=output,
-                file_name="bestellvorschlag.xlsx"
-            )
+        # Bestellvorschläge berechnen
+        result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
+        st.write("Bestellvorschläge:")
+        st.dataframe(result_df)
+
+        # Ergebnisse herunterladen
+        output = BytesIO()
+        result_df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+        st.download_button(
+            label="Download als Excel",
+            data=output,
+            file_name="bestellvorschlag.xlsx"
+        )
 
 # MultiApp
 
