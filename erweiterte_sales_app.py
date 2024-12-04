@@ -126,7 +126,11 @@ def average_sales_app():
 
                 # Ergebnisse anzeigen
                 st.subheader("Ergebnisse")
-                st.dataframe(result)
+                
+                # Credits und Datenschutz
+                st.markdown("---")
+                st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
+                st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
 
                 # Fortschrittsanzeige
                 st.info("Verarbeitung abgeschlossen. Die Ergebnisse stehen zur Verfügung.")
@@ -180,7 +184,11 @@ def average_sales_app():
                             # Ergebnisse der beiden Dateien nebeneinander anzeigen
                             st.subheader("Vergleich der beiden Dateien")
                             merged_results = result.merge(compare_result, on='Artikel', suffixes=('_Original', '_Vergleich'))
-                            st.dataframe(merged_results)
+                            
+        # Credits und Datenschutz
+        st.markdown("---")
+        st.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
+        st.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
     elif navigation == "Anleitung":
         # Anleitung anzeigen
         st.markdown("""
