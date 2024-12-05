@@ -206,6 +206,11 @@ def average_sales_app():
             result = df.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
             result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
 
+            # Beibehaltung der Originalsortierung
+            result['Original_Index'] = df.reset_index().index
+            result.sort_values('Original_Index', inplace=True)
+            result.drop(columns=['Original_Index'], inplace=True)
+
             # Rundungsoptionen in der Sidebar für alle Artikel
             round_option = st.sidebar.selectbox(
                 "Rundungsoption für alle Artikel:",
