@@ -3,9 +3,6 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import pickle
 from io import BytesIO
-import matplotlib.pyplot as plt
-import seaborn as sns
-import os
 from pdfminer.high_level import extract_text
 
 # Page Configuration
