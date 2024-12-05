@@ -40,95 +40,10 @@ def load_model():
         st.warning("Kein trainiertes Modell gefunden. Bitte trainieren Sie das Modell zuerst.")
         return None
 
-# Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
-def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
-    def find_best_week_consumption(article_number, abverkauf_df):
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
-        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
-
-        if not article_data.empty:
-            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
-            return best_week_row['Menge Aktion']
-        return 0
-
-    bestellvorschläge = []
-    for artikelnummer in artikelnummern:
-        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
-        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
-        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
-
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
-    return result_df
-
-# Streamlit App für Bestellvorschlag
-def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
-    st.markdown("""
-    ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
-    1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung', 'Abverkauf' und 'Artikelnummer' enthalten.
-    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
-    4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
-    5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
-    6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
-    """)
-
-    # Upload der Dateien
-    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
-    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
-    bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
-
-    if abverkauf_file and bestand_file:
-        abverkauf_df = pd.read_excel(abverkauf_file)
-        bestand_df = pd.read_excel(bestand_file)
-
-        # Liste der Artikelnummern
-        artikelnummern = bestand_df['Artikelnummer'].unique()
-
-        # Berechnung der Bestellvorschläge ohne ML
-        st.subheader("Bestellvorschläge ohne Machine Learning")
-        result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
-        st.dataframe(result_df)
-
-        # Optional: Trainieren des Modells
-        if st.checkbox("Modell mit neuen Daten trainieren"):
-            model = train_model(abverkauf_df)
-            if model:
-                st.success("Modell wurde mit den neuen Daten trainiert.")
-
-        # Vorhersagen treffen mit Machine Learning
-        model = load_model()
-        if model:
-            st.subheader("Bestellvorschläge mit Machine Learning")
-            input_data = abverkauf_df[['Preis', 'Werbung']]
-            predictions = predict_orders(model, input_data)
-            abverkauf_df['Bestellvorschlag (ML)'] = predictions
-            result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
-
-            # Interaktive Anpassung in der Tabelle
-            st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
-            edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
-
-            # Feedback speichern
-            if st.button("Feedback speichern"):
-                edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
-                st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
-
-            # Ergebnisse herunterladen
-            output = BytesIO()
-            edited_df.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
-            st.download_button(
-                label="Download als Excel",
-                data=output,
-                file_name="bestellvorschlag_ml.xlsx"
-            )
-
 # Durchschnittliche Abverkaufsmengen App
 def average_sales_app():
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
-    
+
     st.markdown("""
     ### Anleitung zur Nutzung dieser App
     1. Bereiten Sie Ihre Abverkaufsdaten vor:
@@ -190,11 +105,27 @@ def average_sales_app():
                 df = df[df['Name'].str.contains(artikel_name_filter, case=False, na=False)]
 
             # Durchschnittliche Abverkaufsmengen berechnen
-            result = df.groupby('Artikel').agg({'Menge': 'mean'}).reset_index()
+            result = df.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
             result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+
+            # Beibehaltung der Originalsortierung
+            result['Original_Index'] = result.index
+            result.sort_values('Original_Index', inplace=True)
+            result.drop(columns=['Original_Index'], inplace=True)
 
             # Ergebnisse anzeigen
             st.subheader("Ergebnisse")
+            for index, row in result.iterrows():
+                round_option = st.selectbox(
+                    f"Rundungsoption für Artikel {row['Artikel']}",
+                    ['Nicht runden', 'Aufrunden', 'Abrunden'],
+                    index=0
+                )
+                if round_option == 'Aufrunden':
+                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] + 0.5)
+                elif round_option == 'Abrunden':
+                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] - 0.5)
+
             st.dataframe(result)
 
             # Fortschrittsanzeige
@@ -215,7 +146,7 @@ def average_sales_app():
                 uploaded_file_compare = st.file_uploader("Vergleichsdatei hochladen (Excel)", type=["xlsx"], key="compare")
                 if uploaded_file_compare:
                     compare_data = pd.read_excel(uploaded_file_compare)
-                    compare_result = compare_data.groupby('Artikel').agg({'Menge': 'mean'}).reset_index()
+                    compare_result = compare_data.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
                     compare_result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
 
                     # Ergebnisse der beiden Dateien nebeneinander anzeigen
