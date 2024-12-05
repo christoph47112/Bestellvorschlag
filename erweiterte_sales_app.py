@@ -12,7 +12,7 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    required_columns = ['Preis', 'Werbung', 'Bestellvorschlag (ML)']
+    required_columns = ['Preis', 'Werbung']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
 
     if missing_columns:
@@ -20,7 +20,7 @@ def train_model(train_data):
         return None
 
     X = train_data[['Preis', 'Werbung']]
-    y = train_data['Bestellvorschlag (ML)']
+    y = train_data.get('Manuelle Anpassung', train_data['Abverkauf'])  # Falls 'Manuelle Anpassung' fehlt, 'Abverkauf' verwenden
 
     model = LinearRegression()
     model.fit(X, y)
@@ -130,7 +130,7 @@ def bestellvorschlag_app():
                 if st.button("Feedback speichern"):
                     st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
-                    # Optional: Modell mit den manuellen Anpassungen trainieren
+                    # Optional: Modell mit manuellen Anpassungen trainieren
                     if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
                         model = train_model(edited_df)
                         if model:
@@ -176,17 +176,17 @@ def average_sales_app():
     example_file = BytesIO()
     example_df.to_excel(example_file, index=False, engine='openpyxl')
     example_file.seek(0)
-
+    
     # Datei-Uploader
     uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
-
+    
     # Beispieldatei Download
     st.sidebar.download_button(
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
     )
-
+    
     if uploaded_file:
         # Excel-Datei laden und verarbeiten
         data = pd.ExcelFile(uploaded_file)
@@ -260,7 +260,7 @@ def average_sales_app():
 def main():
     st.sidebar.title("Modul wechseln")
     app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
-
+    
     if app_selection == "Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden":
         bestellvorschlag_app()
     elif app_selection == "Durchschnittliche Abverkaufsmengen":
