@@ -12,7 +12,6 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    # Überprüfe, ob die erforderlichen Spalten vorhanden sind
     required_columns = ['Preis', 'Werbung', 'Abverkauf']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
 
@@ -20,22 +19,11 @@ def train_model(train_data):
         st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
         return None
 
-    # Auswahl der Eingabedaten und Zielvariable
     X = train_data[['Preis', 'Werbung']]
     y = train_data['Abverkauf']
 
-    # Lineares Regressionsmodell erstellen und trainieren
     model = LinearRegression()
     model.fit(X, y)
-
-    # Visualisierung des Trainingsprozesses
-    fig, ax = plt.subplots()
-    sns.scatterplot(x=X['Preis'], y=y, ax=ax, label='Abverkauf (tatsächlich)')
-    sns.lineplot(x=X['Preis'], y=model.predict(X), color='red', ax=ax, label='Vorhersage (Modell)')
-    ax.set_title('Training des linearen Regressionsmodells')
-    ax.set_xlabel('Preis')
-    ax.set_ylabel('Abverkauf')
-    st.pyplot(fig)
 
     # Modell speichern
     with open('/mnt/data/model.pkl', 'wb') as file:
@@ -117,26 +105,19 @@ def bestellvorschlag_app():
             predictions = predict_orders(model, input_data)
             abverkauf_df['Bestellvorschlag (ML)'] = predictions
             result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
-            st.dataframe(result_ml_df)
 
-            # Anpassungen durch den Benutzer
-            st.write("Passen Sie die Bestellvorschläge an:")
-            for index in result_ml_df.index:
-                result_ml_df.at[index, 'Anpassung'] = st.number_input(
-                    f"Anpassung für Artikelnummer {result_ml_df.at[index, 'Artikelnummer']}",
-                    min_value=0,
-                    value=int(result_ml_df.at[index, 'Bestellvorschlag (ML)']),
-                    step=1
-                )
+            # Interaktive Anpassung in der Tabelle
+            st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
+            edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
 
             # Feedback speichern
             if st.button("Feedback speichern"):
-                result_ml_df['Manuelle Anpassung'] = result_ml_df['Anpassung']
+                edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
                 st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
             # Ergebnisse herunterladen
             output = BytesIO()
-            result_ml_df.to_excel(output, index=False, engine='openpyxl')
+            edited_df.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
             st.download_button(
                 label="Download als Excel",
