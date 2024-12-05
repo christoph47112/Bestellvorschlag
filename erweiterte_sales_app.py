@@ -12,16 +12,15 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    required_columns = ['Artikelnummer', 'Manuelle Anpassung', 'Preis', 'Werbung']
-    missing_columns = [col for col in required_columns if col not in train_data.columns]
-
-    if missing_columns:
-        st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
+    if 'Manuelle Anpassung' not in train_data.columns:
+        st.error("Fehlende Spalte: 'Manuelle Anpassung'")
         return None
 
+    # Auswahl der Eingabedaten und Zielvariable
     X = train_data[['Preis', 'Werbung']]
     y = train_data['Manuelle Anpassung']
 
+    # Lineares Regressionsmodell erstellen und trainieren
     model = LinearRegression()
     model.fit(X, y)
 
@@ -49,13 +48,16 @@ def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
-    1. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
-    2. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand' enthalten.
-    3. Optional: Trainieren Sie das Modell mit den manuellen Anpassungen der Bestellvorschläge.
-    4. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
+    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand' enthalten.
+    4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
+    5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
     """)
 
     # Upload der Dateien
+    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
@@ -81,6 +83,7 @@ def bestellvorschlag_app():
 
                 # Feedback speichern
                 if st.button("Feedback speichern"):
+                    # Die Anpassungen als 'Manuelle Anpassung' speichern
                     edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
                     st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
