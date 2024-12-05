@@ -84,6 +84,9 @@ def bestellvorschlag_app():
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
+    # Sicherheitsfaktor Schieberegler hinzufügen
+    sicherheitsfaktor = st.slider("Sicherheitsfaktor einstellen", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
+
     # PDF-Datei hochladen, ohne sie zu verarbeiten
     if wochenordersatz_file:
         st.write("Wochenordersatz hochgeladen.")
@@ -100,7 +103,7 @@ def bestellvorschlag_app():
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns):
             st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
         else:
-            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
+            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=sicherheitsfaktor)
             st.dataframe(result_df)
 
         # Optional: Trainieren des Modells
