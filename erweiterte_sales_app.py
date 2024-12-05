@@ -178,7 +178,48 @@ def bestellvorschlag_app():
                 )
 
 # Durchschnittliche Abverkaufsmengen App
+
 def average_sales_app():
+    st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
+
+    st.markdown("""
+    ### Anleitung zur Nutzung dieser App
+    Berechnen Sie die durchschnittlichen Abverkaufsmengen aus hochgeladenen Daten.
+    """)
+
+    # Beispieldatei erstellen
+    example_data = {
+        "Artikel": ["A001", "A002", "A003"],
+        "Name": ["Milch", "Butter", "Käse"],
+        "Woche": [1, 2, 3],
+        "Menge": [100, 200, 150]
+    }
+    example_df = pd.DataFrame(example_data)
+    example_file = BytesIO()
+    example_df.to_excel(example_file, index=False, engine='openpyxl')
+    example_file.seek(0)
+
+    # Einmaliger Download-Button
+    st.sidebar.download_button(
+        label="Beispieldatei herunterladen",
+        data=example_file,
+        file_name="beispiel_abverkauf.xlsx",
+        key="average_sales_example"
+    )
+
+    # Datei-Upload
+    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
+    if uploaded_file:
+        try:
+            df = pd.read_excel(uploaded_file)
+            if {"Artikel", "Woche", "Menge"}.issubset(df.columns):
+                result = df.groupby("Artikel").agg({"Menge": "mean"}).reset_index()
+                st.dataframe(result)
+            else:
+                st.error("Die Datei enthält nicht die erwarteten Spalten: 'Artikel', 'Woche', 'Menge'.")
+        except Exception as e:
+            st.error(f"Fehler beim Verarbeiten der Datei: {e}")
+
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
 
     st.markdown("""
@@ -213,6 +254,7 @@ def average_sales_app():
 
     # Beispieldatei Download
     st.sidebar.download_button(
+        key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
@@ -303,6 +345,7 @@ def create_example_file():
     example_file.seek(0)
 
     st.sidebar.download_button(
+        key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
