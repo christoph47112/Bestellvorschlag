@@ -92,33 +92,11 @@ def bestellvorschlag_app():
 
     sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
-    
     if abverkauf_file and bestand_file:
-        try:
-            abverkauf_df = pd.read_excel(abverkauf_file)
-            bestand_df = pd.read_excel(bestand_file)
 
-            # Entfernen von Leerzeichen in Spaltennamen
-            abverkauf_df.columns = abverkauf_df.columns.str.strip()
-            bestand_df.columns = bestand_df.columns.str.strip()
-
-            # Überprüfen, ob die erforderlichen Spalten vorhanden sind
-            if not {'Preis', 'Werbung', 'Bestellvorschlag (ML)'}.issubset(abverkauf_df.columns):
-                st.error("Die Datei enthält nicht alle erforderlichen Spalten. Überprüfen Sie die Beispieldatei.")
-                st.write("Vorhandene Spalten in der Abverkaufsdatei:", abverkauf_df.columns.tolist())
-            else:
-                artikelnummern = bestand_df['Artikelnummer'].unique()
-                result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
-                st.dataframe(result_df)
-        except Exception as e:
-            st.error(f"Fehler beim Verarbeiten der Dateien: {e}")
-    else:
-        st.error("Bitte laden Sie sowohl die Abverkaufs- als auch die Bestandsdatei hoch.")
-
-
-        # Entfernen von überflüssigen Leerzeichen in Spaltennamen
-        abverkauf_df.columns = abverkauf_df.columns.str.strip()
-        bestand_df.columns = bestand_df.columns.str.strip()
+    # Entfernen von überflüssigen Leerzeichen in Spaltennamen
+    abverkauf_df.columns = abverkauf_df.columns.str.strip()
+    bestand_df.columns = bestand_df.columns.str.strip()
 
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
@@ -178,48 +156,7 @@ def bestellvorschlag_app():
                 )
 
 # Durchschnittliche Abverkaufsmengen App
-
 def average_sales_app():
-    st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
-
-    st.markdown("""
-    ### Anleitung zur Nutzung dieser App
-    Berechnen Sie die durchschnittlichen Abverkaufsmengen aus hochgeladenen Daten.
-    """)
-
-    # Beispieldatei erstellen
-    example_data = {
-        "Artikel": ["A001", "A002", "A003"],
-        "Name": ["Milch", "Butter", "Käse"],
-        "Woche": [1, 2, 3],
-        "Menge": [100, 200, 150]
-    }
-    example_df = pd.DataFrame(example_data)
-    example_file = BytesIO()
-    example_df.to_excel(example_file, index=False, engine='openpyxl')
-    example_file.seek(0)
-
-    # Einmaliger Download-Button
-    st.sidebar.download_button(
-        label="Beispieldatei herunterladen",
-        data=example_file,
-        file_name="beispiel_abverkauf.xlsx",
-        key="average_sales_example"
-    )
-
-    # Datei-Upload
-    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
-    if uploaded_file:
-        try:
-            df = pd.read_excel(uploaded_file)
-            if {"Artikel", "Woche", "Menge"}.issubset(df.columns):
-                result = df.groupby("Artikel").agg({"Menge": "mean"}).reset_index()
-                st.dataframe(result)
-            else:
-                st.error("Die Datei enthält nicht die erwarteten Spalten: 'Artikel', 'Woche', 'Menge'.")
-        except Exception as e:
-            st.error(f"Fehler beim Verarbeiten der Datei: {e}")
-
     st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
 
     st.markdown("""
@@ -254,7 +191,6 @@ def average_sales_app():
 
     # Beispieldatei Download
     st.sidebar.download_button(
-        key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
@@ -345,7 +281,6 @@ def create_example_file():
     example_file.seek(0)
 
     st.sidebar.download_button(
-        key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
