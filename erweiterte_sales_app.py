@@ -94,9 +94,9 @@ def bestellvorschlag_app():
 
     if abverkauf_file and bestand_file:
 
-    # Entfernen von überflüssigen Leerzeichen in Spaltennamen
-    abverkauf_df.columns = abverkauf_df.columns.str.strip()
-    bestand_df.columns = bestand_df.columns.str.strip()
+        # Entfernen von überflüssigen Leerzeichen in Spaltennamen
+        abverkauf_df.columns = abverkauf_df.columns.str.strip()
+        bestand_df.columns = bestand_df.columns.str.strip()
 
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
