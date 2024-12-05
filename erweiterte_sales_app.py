@@ -13,12 +13,12 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
     # Überprüfe, ob die erforderlichen Spalten vorhanden sind
-    required_columns = ['Preis', 'Werbung']
+    required_columns = ['Preis', 'Werbung', 'Abverkauf']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
-    
+
     if missing_columns:
         st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
-        return
+        return None
 
     # Auswahl der Eingabedaten und Zielvariable
     X = train_data[['Preis', 'Werbung']]
@@ -36,32 +36,51 @@ def train_model(train_data):
     ax.set_xlabel('Preis')
     ax.set_ylabel('Abverkauf')
     st.pyplot(fig)
-    
+
     # Modell speichern
     with open('/mnt/data/model.pkl', 'wb') as file:
         pickle.dump(model, file)
 
+    return model
+
 # Funktion zum Laden des Modells
 def load_model():
-    with open('/mnt/data/model.pkl', 'rb') as file:
-        return pickle.load(file)
+    try:
+        with open('/mnt/data/model.pkl', 'rb') as file:
+            return pickle.load(file)
+    except FileNotFoundError:
+        st.warning("Kein trainiertes Modell gefunden. Bitte trainieren Sie das Modell zuerst.")
+        return None
 
-# Vorhersagefunktion
-def predict_orders(model, input_data):
-    return model.predict(input_data)
+# Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
+def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
+    def find_best_week_consumption(article_number, abverkauf_df):
+        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
+        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
-# Zentraler DataFrame, um Bestellvorschläge und Anpassungen im Speicher zu halten
-if 'bestellvorschlag_df' not in st.session_state:
-    st.session_state.bestellvorschlag_df = pd.DataFrame()
+        if not article_data.empty:
+            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
+            return best_week_row['Menge Aktion']
+        return 0
+
+    bestellvorschläge = []
+    for artikelnummer in artikelnummern:
+        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
+        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
+        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
+        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
+
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    return result_df
 
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung mit Machine Learning")
+    st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Abverkauf' enthalten.
-    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalte 'Artikelnummer' und 'Bestand' enthalten.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung', 'Abverkauf' und 'Artikelnummer' enthalten.
+    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
     6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
@@ -72,50 +91,58 @@ def bestellvorschlag_app():
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
-    if wochenordersatz_file and abverkauf_file and bestand_file:
+    if abverkauf_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
 
-        # Checkbox, um das Modell mit neuen Daten zu trainieren
-        if st.checkbox("Modell mit neuen Daten trainieren"):
-            train_model(abverkauf_df)
-            st.write("Modell wurde mit den neuen Daten trainiert.")
+        # Liste der Artikelnummern
+        artikelnummern = bestand_df['Artikelnummer'].unique()
 
-        # Vorhersagen treffen
-        try:
-            model = load_model()
+        # Berechnung der Bestellvorschläge ohne ML
+        st.subheader("Bestellvorschläge ohne Machine Learning")
+        result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
+        st.dataframe(result_df)
+
+        # Optional: Trainieren des Modells
+        if st.checkbox("Modell mit neuen Daten trainieren"):
+            model = train_model(abverkauf_df)
+            if model:
+                st.success("Modell wurde mit den neuen Daten trainiert.")
+
+        # Vorhersagen treffen mit Machine Learning
+        model = load_model()
+        if model:
+            st.subheader("Bestellvorschläge mit Machine Learning")
             input_data = abverkauf_df[['Preis', 'Werbung']]
             predictions = predict_orders(model, input_data)
-            abverkauf_df['Bestellvorschlag'] = predictions
+            abverkauf_df['Bestellvorschlag (ML)'] = predictions
+            result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
+            st.dataframe(result_ml_df)
 
-            # Zusammenführen der Bestände mit den Bestellvorschlägen
-            st.session_state.bestellvorschlag_df = abverkauf_df.merge(bestand_df, on='Artikelnummer', how='left')
-
-            st.write("Bestellvorschläge:")
-            for index in st.session_state.bestellvorschlag_df.index:
-                st.session_state.bestellvorschlag_df.at[index, 'Anpassung'] = st.number_input(
-                    f"Anpassung für Artikelnummer {st.session_state.bestellvorschlag_df.at[index, 'Artikelnummer']}",
+            # Anpassungen durch den Benutzer
+            st.write("Passen Sie die Bestellvorschläge an:")
+            for index in result_ml_df.index:
+                result_ml_df.at[index, 'Anpassung'] = st.number_input(
+                    f"Anpassung für Artikelnummer {result_ml_df.at[index, 'Artikelnummer']}",
                     min_value=0,
-                    value=int(st.session_state.bestellvorschlag_df.at[index, 'Bestellvorschlag']),
+                    value=int(result_ml_df.at[index, 'Bestellvorschlag (ML)']),
                     step=1
                 )
 
             # Feedback speichern
             if st.button("Feedback speichern"):
-                st.session_state.bestellvorschlag_df['Manuelle Anpassung'] = st.session_state.bestellvorschlag_df['Anpassung']
+                result_ml_df['Manuelle Anpassung'] = result_ml_df['Anpassung']
                 st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
             # Ergebnisse herunterladen
             output = BytesIO()
-            st.session_state.bestellvorschlag_df.to_excel(output, index=False, engine='openpyxl')
+            result_ml_df.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
             st.download_button(
                 label="Download als Excel",
                 data=output,
-                file_name="bestellvorschlag.xlsx"
+                file_name="bestellvorschlag_ml.xlsx"
             )
-        except FileNotFoundError:
-            st.error("Kein trainiertes Modell gefunden. Trainieren Sie das Modell zuerst mit neuen Daten.")
 
 # Durchschnittliche Abverkaufsmengen App
 def average_sales_app():
@@ -218,9 +245,9 @@ def average_sales_app():
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
     st.sidebar.title("Modul wechseln")
-    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning", "Durchschnittliche Abverkaufsmengen"])
+    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
     
-    if app_selection == "Bestellvorschlag Berechnung mit Machine Learning":
+    if app_selection == "Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden":
         bestellvorschlag_app()
     elif app_selection == "Durchschnittliche Abverkaufsmengen":
         average_sales_app()
