@@ -86,12 +86,9 @@ def bestellvorschlag_app():
     """)
 
     # Upload der Dateien
-    wochenordersatz_file = st.file_uploader(
-        key='unique_file_uploader_key',"Wochenordersatz hochladen (PDF)", type=["pdf"])
-    abverkauf_file = st.file_uploader(
-        key='unique_file_uploader_key',"Abverkauf Datei hochladen (Excel)", type=["xlsx"])
-    bestand_file = st.file_uploader(
-        key='unique_file_uploader_key',"Bestände hochladen (Excel)", type=["xlsx"])
+    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
+    abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
+    bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
     sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
@@ -204,7 +201,6 @@ def average_sales_app():
 
     # Einmaliger Download-Button
     st.sidebar.download_button(
-        key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx",
@@ -212,8 +208,7 @@ def average_sales_app():
     )
 
     # Datei-Upload
-    uploaded_file = st.file_uploader(
-        key='unique_file_uploader_key',"Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
+    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
     if uploaded_file:
         try:
             df = pd.read_excel(uploaded_file)
@@ -255,12 +250,10 @@ def average_sales_app():
     example_file.seek(0)
 
     # Datei-Uploader
-    uploaded_file = st.file_uploader(
-        key='unique_file_uploader_key',"Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
+    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
 
     # Beispieldatei Download
     st.sidebar.download_button(
-        key='unique_download_key',
         key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
@@ -325,8 +318,7 @@ def average_sales_app():
 
             # Vergleich von Ergebnissen ermöglichen
             if st.checkbox("Vergleiche mit einer anderen Datei anzeigen"):
-                uploaded_file_compare = st.file_uploader(
-        key='unique_file_uploader_key',"Vergleichsdatei hochladen (Excel)", type=["xlsx"], key="compare")
+                uploaded_file_compare = st.file_uploader("Vergleichsdatei hochladen (Excel)", type=["xlsx"], key="compare")
                 if uploaded_file_compare:
                     compare_data = pd.read_excel(uploaded_file_compare)
                     compare_result = compare_data.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
@@ -353,7 +345,6 @@ def create_example_file():
     example_file.seek(0)
 
     st.sidebar.download_button(
-        key='unique_download_key',
         key='unique_download_key',
         label="Beispieldatei herunterladen",
         data=example_file,
