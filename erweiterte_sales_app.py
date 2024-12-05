@@ -123,10 +123,18 @@ def bestellvorschlag_app():
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
                 edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
 
+                # Benutzer kann die manuelle Anpassung für jeden Artikel eingeben
+                edited_df['Manuelle Anpassung'] = edited_df.apply(lambda row: st.number_input(f"Manuelle Anpassung für Artikel {row['Artikelnummer']}", min_value=0, value=int(row['Bestellvorschlag (ML)'])), axis=1)
+
                 # Feedback speichern
                 if st.button("Feedback speichern"):
-                    edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
                     st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
+
+                    # Optional: Modell mit den manuellen Anpassungen trainieren
+                    if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
+                        model = train_model(edited_df)
+                        if model:
+                            st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
 
                 # Ergebnisse herunterladen
                 output = BytesIO()
