@@ -168,8 +168,11 @@ def average_sales_app():
                 df = df[df['Name'].str.contains(artikel_name_filter, case=False, na=False)]
 
             # Durchschnittliche Abverkaufsmengen berechnen und Originalreihenfolge beibehalten
-            result = df.groupby(['Artikel', 'Name'], sort=False).agg({'Menge': 'mean'}).reset_index()
+            df['Original_Index'] = df.index
+            result = df.groupby(['Artikel', 'Name'], sort=False).agg({'Menge': 'mean', 'Original_Index': 'min'}).reset_index()
             result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+            result.sort_values('Original_Index', inplace=True)
+            result.drop(columns=['Original_Index'], inplace=True)
 
             # Rundungsoptionen in der Sidebar für alle Artikel
             round_option = st.sidebar.selectbox(
