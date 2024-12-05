@@ -3,14 +3,16 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import pickle
 from io import BytesIO
-from pdfminer.high_level import extract_text
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    required_columns = ['Preis', 'Werbung', 'Manuelle Anpassung']
+    required_columns = ['Preis', 'Werbung', 'Bestellvorschlag (ML)']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
 
     if missing_columns:
@@ -18,7 +20,7 @@ def train_model(train_data):
         return None
 
     X = train_data[['Preis', 'Werbung']]
-    y = train_data['Manuelle Anpassung']
+    y = train_data['Bestellvorschlag (ML)']
 
     model = LinearRegression()
     model.fit(X, y)
@@ -72,7 +74,7 @@ def bestellvorschlag_app():
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung', 'Abverkauf' und 'Artikelnummer' enthalten.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
     3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
@@ -83,11 +85,6 @@ def bestellvorschlag_app():
     wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
-
-    # PDF-Daten extrahieren (wenn vorhanden)
-    if wochenordersatz_file:
-        pdf_text = extract_text(wochenordersatz_file)
-        st.text_area("Inhalt des Wochenordersatzes", pdf_text, height=200)
 
     sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
@@ -105,6 +102,12 @@ def bestellvorschlag_app():
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
+
+        # Optional: Trainieren des Modells
+        if st.checkbox("Modell mit neuen Daten trainieren"):
+            model = train_model(abverkauf_df)
+            if model:
+                st.success("Modell wurde mit den neuen Daten trainiert.")
 
         # Vorhersagen treffen mit Machine Learning
         model = load_model()
@@ -127,14 +130,11 @@ def bestellvorschlag_app():
                 if st.button("Feedback speichern"):
                     st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
-                    # Optional: Modell mit manuellen Anpassungen trainieren
+                    # Optional: Modell mit den manuellen Anpassungen trainieren
                     if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
-                        if 'Manuelle Anpassung' in edited_df.columns:
-                            model = train_model(edited_df)
-                            if model:
-                                st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
-                        else:
-                            st.error("Die Spalte 'Manuelle Anpassung' fehlt in den bearbeiteten Daten.")
+                        model = train_model(edited_df)
+                        if model:
+                            st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
 
                 # Ergebnisse herunterladen
                 output = BytesIO()
