@@ -6,6 +6,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import PyPDF2
 
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
@@ -49,15 +50,26 @@ def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
-    1. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.
-    2. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand' enthalten.
-    3. Optional: Trainieren Sie das Modell mit den manuellen Anpassungen der Bestellvorschläge.
-    4. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.
+    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand' enthalten.
+    4. Optional: Trainieren Sie das Modell mit den manuellen Anpassungen der Bestellvorschläge.
+    5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
     """)
 
     # Upload der Dateien
+    wochenordersatz_file = st.file_uploader("Wochenordersatz hochladen (PDF)", type=["pdf"])
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
+
+    if wochenordersatz_file:
+        # Lesen des PDFs und Extrahieren des Inhalts (optional zur weiteren Verwendung)
+        pdf_reader = PyPDF2.PdfFileReader(wochenordersatz_file)
+        pdf_text = ""
+        for page in range(pdf_reader.numPages):
+            pdf_text += pdf_reader.getPage(page).extract_text()
+
+        st.text_area("Inhalt des Wochenordersatz-PDFs", pdf_text, height=200)
 
     if abverkauf_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
