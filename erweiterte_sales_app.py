@@ -92,7 +92,29 @@ def bestellvorschlag_app():
 
     sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
+    
     if abverkauf_file and bestand_file:
+        try:
+            abverkauf_df = pd.read_excel(abverkauf_file)
+            bestand_df = pd.read_excel(bestand_file)
+
+            # Entfernen von Leerzeichen in Spaltennamen
+            abverkauf_df.columns = abverkauf_df.columns.str.strip()
+            bestand_df.columns = bestand_df.columns.str.strip()
+
+            # Überprüfen, ob die erforderlichen Spalten vorhanden sind
+            if not {'Preis', 'Werbung', 'Bestellvorschlag (ML)'}.issubset(abverkauf_df.columns):
+                st.error("Die Datei enthält nicht alle erforderlichen Spalten. Überprüfen Sie die Beispieldatei.")
+                st.write("Vorhandene Spalten in der Abverkaufsdatei:", abverkauf_df.columns.tolist())
+            else:
+                artikelnummern = bestand_df['Artikelnummer'].unique()
+                result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
+                st.dataframe(result_df)
+        except Exception as e:
+            st.error(f"Fehler beim Verarbeiten der Dateien: {e}")
+    else:
+        st.error("Bitte laden Sie sowohl die Abverkaufs- als auch die Bestandsdatei hoch.")
+
 
         # Entfernen von überflüssigen Leerzeichen in Spaltennamen
         abverkauf_df.columns = abverkauf_df.columns.str.strip()
