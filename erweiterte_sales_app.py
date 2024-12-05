@@ -12,15 +12,16 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    if 'Manuelle Anpassung' not in train_data.columns:
-        st.error("Fehlende Spalte: 'Manuelle Anpassung'")
+    required_columns = ['Artikelnummer', 'Manuelle Anpassung']
+    missing_columns = [col for col in required_columns if col not in train_data.columns]
+
+    if missing_columns:
+        st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
         return None
 
-    # Auswahl der Eingabedaten und Zielvariable
     X = train_data[['Artikelnummer']]
     y = train_data['Manuelle Anpassung']
 
-    # Lineares Regressionsmodell erstellen und trainieren
     model = LinearRegression()
     model.fit(X, y)
 
@@ -67,41 +68,39 @@ def bestellvorschlag_app():
         elif not {'Artikelnummer', 'Bestand'}.issubset(bestand_df.columns):
             st.error("Die Bestandsdatei muss die Spalten 'Artikelnummer' und 'Bestand' enthalten.")
         else:
-            # Zusammenführen der Abverkaufs- und Bestandsdaten
-            result_df = abverkauf_df.groupby('Artikelnummer').agg({'Menge Aktion': 'max'}).reset_index()
-            result_df.rename(columns={'Menge Aktion': 'Gesamtverbrauch'}, inplace=True)
-            result_df = result_df.merge(bestand_df, on='Artikelnummer', how='left')
+            # Vorhersagen treffen mit Machine Learning
+            model = load_model()
+            if model:
+                st.subheader("Bestellvorschläge mit Machine Learning")
+                input_data = abverkauf_df[['Artikelnummer']]
+                predictions = predict_orders(model, input_data)
+                abverkauf_df['Bestellvorschlag (ML)'] = predictions
+                result_ml_df = abverkauf_df[['Artikelnummer', 'Menge Aktion', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
 
-            # Bestellvorschlag berechnen
-            result_df['Bestellvorschlag'] = result_df.apply(
-                lambda row: max(row['Gesamtverbrauch'] * 1.1 - row['Bestand'], 0), axis=1
-            )
+                # Interaktive Anpassung in der Tabelle
+                st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
+                edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
 
-            # Interaktive Anpassung in der Tabelle
-            st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
-            edited_df = st.experimental_data_editor(result_df, use_container_width=True)
+                # Feedback speichern
+                if st.button("Feedback speichern"):
+                    edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
+                    st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
-            # Feedback speichern
-            if st.button("Feedback speichern"):
-                # Die Anpassungen als 'Manuelle Anpassung' speichern
-                edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag']
-                st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
+                    # Optional: Modell mit den manuellen Anpassungen trainieren
+                    if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
+                        model = train_model(edited_df)
+                        if model:
+                            st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
 
-                # Optional: Modell mit den manuellen Anpassungen trainieren
-                if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
-                    model = train_model(edited_df)
-                    if model:
-                        st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
-
-            # Ergebnisse herunterladen
-            output = BytesIO()
-            edited_df.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
-            st.download_button(
-                label="Download als Excel",
-                data=output,
-                file_name="bestellvorschlag_ml.xlsx"
-            )
+                # Ergebnisse herunterladen
+                output = BytesIO()
+                edited_df.to_excel(output, index=False, engine='openpyxl')
+                output.seek(0)
+                st.download_button(
+                    label="Download als Excel",
+                    data=output,
+                    file_name="bestellvorschlag_ml.xlsx"
+                )
 
 # Durchschnittliche Abverkaufsmengen App
 def average_sales_app():
