@@ -75,11 +75,15 @@ def bestellvorschlag_app():
                 abverkauf_df['Bestellvorschlag (ML)'] = predictions
             else:
                 st.warning("Die Spalten 'Preis' und 'Werbung' fehlen in der Abverkaufsdatei, daher wird keine Machine Learning-Vorhersage durchgeführt.")
+                abverkauf_df['Bestellvorschlag (ML)'] = 0  # Platzhalter für Bestellvorschläge, falls kein Modell vorhanden ist
         else:
             abverkauf_df['Bestellvorschlag (ML)'] = 0  # Platzhalter für Bestellvorschläge, falls kein Modell vorhanden ist
 
-        # Zusammenführen der Bestände mit den Bestellvorschlägen
-        result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
+        # Überprüfen, ob die erforderlichen Spalten vorhanden sind, bevor der Merge durchgeführt wird
+        if 'Bestellvorschlag (ML)' in abverkauf_df.columns:
+            result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
+        else:
+            result_ml_df = bestand_df  # Falls die Spalte nicht vorhanden ist, nur Bestand anzeigen
 
         # Interaktive Anpassung in der Tabelle
         st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
