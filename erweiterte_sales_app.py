@@ -206,22 +206,17 @@ def average_sales_app():
             result = df.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
             result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
 
-            # Beibehaltung der Originalsortierung
-            result['Original_Index'] = result.index
-            result.sort_values('Original_Index', inplace=True)
-            result.drop(columns=['Original_Index'], inplace=True)
+            # Rundungsoptionen in der Sidebar für alle Artikel
+            round_option = st.sidebar.selectbox(
+                "Rundungsoption für alle Artikel:",
+                ['Nicht runden', 'Aufrunden', 'Abrunden'],
+                index=0
+            )
 
-            # Rundungsoptionen für jeden Artikel
-            for index, row in result.iterrows():
-                round_option = st.selectbox(
-                    f"Rundungsoption für Artikel {row['Artikel']}",
-                    ['Nicht runden', 'Aufrunden', 'Abrunden'],
-                    index=0
-                )
-                if round_option == 'Aufrunden':
-                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] + 0.5)
-                elif round_option == 'Abrunden':
-                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] - 0.5)
+            if round_option == 'Aufrunden':
+                result['Durchschnittliche Menge pro Woche'] = result['Durchschnittliche Menge pro Woche'].apply(lambda x: round(x + 0.5))
+            elif round_option == 'Abrunden':
+                result['Durchschnittliche Menge pro Woche'] = result['Durchschnittliche Menge pro Woche'].apply(lambda x: round(x - 0.5))
 
             # Ergebnisse anzeigen
             st.subheader("Ergebnisse")
