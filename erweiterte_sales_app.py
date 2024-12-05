@@ -12,7 +12,6 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Hinweis zur Beta-Phase
 st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
-st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
@@ -93,11 +92,6 @@ def bestellvorschlag_app():
     sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
     if abverkauf_file and bestand_file:
-
-    # Entfernen von überflüssigen Leerzeichen in Spaltennamen
-    abverkauf_df.columns = abverkauf_df.columns.str.strip()
-    bestand_df.columns = bestand_df.columns.str.strip()
-
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
 
@@ -266,30 +260,7 @@ def average_sales_app():
                     st.dataframe(merged_results)
 
 # Hauptprogramm zur Ausführung der MultiApp
-
-# Funktion zur Erstellung einer Beispieldatei für Abverkaufsdaten
-def create_example_file():
-    example_data = {
-        "Preis": [1.99, 2.49, 3.99],
-        "Werbung": [1, 0, 1],
-        "Bestellvorschlag (ML)": [100, 200, 150],
-        "Artikelnummer": ["A001", "A002", "A003"]
-    }
-    example_df = pd.DataFrame(example_data)
-    example_file = BytesIO()
-    example_df.to_excel(example_file, index=False, engine='openpyxl')
-    example_file.seek(0)
-
-    st.sidebar.download_button(
-        label="Beispieldatei herunterladen",
-        data=example_file,
-        file_name="beispiel_abverkauf.xlsx"
-    )
-
-
 def main():
-    create_example_file()
-
     st.sidebar.title("Modul wechseln")
     app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
 
