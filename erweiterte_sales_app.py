@@ -5,13 +5,14 @@ import pickle
 from io import BytesIO
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    required_columns = ['Preis', 'Werbung', 'Manuelle Anpassung']
+    required_columns = ['Preis', 'Werbung', 'Bestellvorschlag (ML)']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
 
     if missing_columns:
@@ -19,7 +20,7 @@ def train_model(train_data):
         return None
 
     X = train_data[['Preis', 'Werbung']]
-    y = train_data['Manuelle Anpassung']
+    y = train_data['Bestellvorschlag (ML)']
 
     model = LinearRegression()
     model.fit(X, y)
@@ -73,10 +74,11 @@ def bestellvorschlag_app():
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
     3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
-    4. Optional: Trainieren Sie das Modell mit den manuellen Anpassungen der Bestellvorschläge.
+    4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
+    6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
     """)
 
     # Upload der Dateien
@@ -84,12 +86,7 @@ def bestellvorschlag_app():
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
-    # Sicherheitsfaktor Schieberegler hinzufügen
-    sicherheitsfaktor = st.slider("Sicherheitsfaktor einstellen", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
-
-    # PDF-Datei hochladen, ohne sie zu verarbeiten
-    if wochenordersatz_file:
-        st.write("Wochenordersatz hochgeladen.")
+    sicherheitsfaktor = st.slider("Sicherheitsfaktor", min_value=0.0, max_value=1.0, value=0.1, step=0.05)
 
     if abverkauf_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
@@ -103,7 +100,7 @@ def bestellvorschlag_app():
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns):
             st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
         else:
-            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=sicherheitsfaktor)
+            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
 
         # Optional: Trainieren des Modells
@@ -126,18 +123,18 @@ def bestellvorschlag_app():
 
                 # Interaktive Anpassung in der Tabelle
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
+                result_ml_df['Manuelle Anpassung'] = result_ml_df['Bestellvorschlag (ML)']
                 edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
 
-                # Feedback speichern und Modell trainieren
-                if st.button("Feedback speichern und Modell trainieren"):
-                    if 'Manuelle Anpassung' not in edited_df.columns:
-                        edited_df['Manuelle Anpassung'] = edited_df['Bestellvorschlag (ML)']
+                # Feedback speichern
+                if st.button("Feedback speichern"):
+                    st.success("Feedback wurde gespeichert und wird für zukünftiges Training verwendet.")
 
-                    st.success("Feedback wurde gespeichert und das Modell wird jetzt trainiert.")
-                    # Modell mit den manuellen Anpassungen trainieren
-                    model = train_model(edited_df)
-                    if model:
-                        st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
+                    # Optional: Modell mit den manuellen Anpassungen trainieren
+                    if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
+                        model = train_model(edited_df)
+                        if model:
+                            st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
 
                 # Ergebnisse herunterladen
                 output = BytesIO()
@@ -179,17 +176,17 @@ def average_sales_app():
     example_file = BytesIO()
     example_df.to_excel(example_file, index=False, engine='openpyxl')
     example_file.seek(0)
-    
+
     # Datei-Uploader
     uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
-    
+
     # Beispieldatei Download
     st.sidebar.download_button(
         label="Beispieldatei herunterladen",
         data=example_file,
         file_name="beispiel_abverkauf.xlsx"
     )
-    
+
     if uploaded_file:
         # Excel-Datei laden und verarbeiten
         data = pd.ExcelFile(uploaded_file)
@@ -263,7 +260,7 @@ def average_sales_app():
 def main():
     st.sidebar.title("Modul wechseln")
     app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
-    
+
     if app_selection == "Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden":
         bestellvorschlag_app()
     elif app_selection == "Durchschnittliche Abverkaufsmengen":
