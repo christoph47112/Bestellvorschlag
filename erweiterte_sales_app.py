@@ -5,17 +5,9 @@ import pickle
 from io import BytesIO
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pdfminer.high_level
-from pdfminer.layout import LAParams
 
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
-
-# Funktion zum Extrahieren von Text aus PDF
-def extract_text_from_pdf(pdf_file):
-    laparams = LAParams()
-    pdf_text = pdfminer.high_level.extract_text(pdf_file, laparams=laparams)
-    return pdf_text
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
@@ -51,6 +43,30 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
+def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
+    def find_best_week_consumption(article_number, abverkauf_df):
+        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
+        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
+
+        if not article_data.empty:
+            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
+            return best_week_row['Menge Aktion']
+        return 0
+
+    bestellvorschläge = []
+    for artikelnummer in artikelnummern:
+        if artikelnummer not in bestand_df['Artikelnummer'].values:
+            continue
+
+        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
+        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
+        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
+        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
+
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    return result_df
+
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
@@ -68,11 +84,9 @@ def bestellvorschlag_app():
     abverkauf_file = st.file_uploader("Abverkauf Datei hochladen (Excel)", type=["xlsx"])
     bestand_file = st.file_uploader("Bestände hochladen (Excel)", type=["xlsx"])
 
-    # PDF-Datei verarbeiten
+    # PDF-Datei hochladen, ohne sie zu verarbeiten
     if wochenordersatz_file:
-        pdf_text = extract_text_from_pdf(wochenordersatz_file)
-        st.write("Auszug aus der Wochenordersatz-PDF:")
-        st.text(pdf_text[:1000])  # Nur die ersten 1000 Zeichen zur Anzeige, um die Übersicht zu wahren
+        st.write("Wochenordersatz hochgeladen.")
 
     if abverkauf_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
