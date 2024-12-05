@@ -6,7 +6,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-import PyPDF2
+from PyPDF2 import PdfReader
 
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
@@ -64,10 +64,10 @@ def bestellvorschlag_app():
 
     if wochenordersatz_file:
         # Lesen des PDFs und Extrahieren des Inhalts (optional zur weiteren Verwendung)
-        pdf_reader = PyPDF2.PdfFileReader(wochenordersatz_file)
+        pdf_reader = PdfReader(wochenordersatz_file)
         pdf_text = ""
-        for page in range(pdf_reader.numPages):
-            pdf_text += pdf_reader.getPage(page).extract_text()
+        for page in pdf_reader.pages:
+            pdf_text += page.extract_text()
 
         st.text_area("Inhalt des Wochenordersatz-PDFs", pdf_text, height=200)
 
