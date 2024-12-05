@@ -12,13 +12,22 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
+    # Überprüfe, ob die erforderlichen Spalten vorhanden sind
+    required_columns = ['Preis', 'Werbung']
+    missing_columns = [col for col in required_columns if col not in train_data.columns]
+    
+    if missing_columns:
+        st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
+        return
+
+    # Auswahl der Eingabedaten und Zielvariable
     X = train_data[['Preis', 'Werbung']]
     y = train_data['Abverkauf']
-    
+
     # Lineares Regressionsmodell erstellen und trainieren
     model = LinearRegression()
     model.fit(X, y)
-    
+
     # Visualisierung des Trainingsprozesses
     fig, ax = plt.subplots()
     sns.scatterplot(x=X['Preis'], y=y, ax=ax, label='Abverkauf (tatsächlich)')
@@ -88,8 +97,7 @@ def bestellvorschlag_app():
                     f"Anpassung für Artikelnummer {st.session_state.bestellvorschlag_df.at[index, 'Artikelnummer']}",
                     min_value=0,
                     value=int(st.session_state.bestellvorschlag_df.at[index, 'Bestellvorschlag']),
-                    step=1,
-                    key=f"input_{index}"
+                    step=1
                 )
 
             # Feedback speichern
