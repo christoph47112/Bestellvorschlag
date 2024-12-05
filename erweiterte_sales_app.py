@@ -12,16 +12,19 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
-    required_columns = ['Preis', 'Werbung', 'Abverkauf']
+    # Die Spalten, die für das Training benötigt werden, werden geprüft
+    required_columns = ['Artikelnummer', 'Manuelle Anpassung', 'Preis', 'Werbung']
     missing_columns = [col for col in required_columns if col not in train_data.columns]
 
     if missing_columns:
         st.error(f"Fehlende Spalten in der Datei: {', '.join(missing_columns)}")
         return None
 
+    # Eingabedaten (X) und Zielvariable (y) definieren
     X = train_data[['Preis', 'Werbung']]
-    y = train_data['Abverkauf']
+    y = train_data['Manuelle Anpassung']
 
+    # Lineares Regressionsmodell erstellen und trainieren
     model = LinearRegression()
     model.fit(X, y)
 
@@ -47,6 +50,7 @@ def predict_orders(model, input_data):
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
+        # Die beste Woche basierend auf dem maximalen Abverkauf wird bestimmt
         article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
@@ -74,11 +78,10 @@ def bestellvorschlag_app():
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung', 'Abverkauf' und 'Artikelnummer' enthalten.
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch.
     3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
-    4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
+    4. Optional: Trainieren Sie das Modell mit den manuellen Anpassungen der Bestellvorschläge.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
-    6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
     """)
 
     # Upload der Dateien
@@ -96,7 +99,7 @@ def bestellvorschlag_app():
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns):
-            st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
+            st.warning("Die Berechnung basiert auf Ihren Daten, aber es sind nicht alle Informationen für eine präzise Berechnung vorhanden.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern)
             st.dataframe(result_df)
@@ -112,7 +115,7 @@ def bestellvorschlag_app():
         if model:
             st.subheader("Bestellvorschläge mit Machine Learning")
             if not {'Preis', 'Werbung'}.issubset(abverkauf_df.columns):
-                st.error("Die Abverkaufsdatei muss die Spalten 'Preis' und 'Werbung' enthalten.")
+                st.warning("Es sind keine Preis- und Werbedaten vorhanden, aber Sie können dennoch Anpassungen vornehmen.")
             else:
                 input_data = abverkauf_df[['Preis', 'Werbung']]
                 predictions = predict_orders(model, input_data)
@@ -121,10 +124,7 @@ def bestellvorschlag_app():
 
                 # Interaktive Anpassung in der Tabelle
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
-                edited_df = st.experimental_data_editor(result_ml_df, use_container_width=True)
-
-                # Benutzer kann die manuelle Anpassung für jeden Artikel eingeben
-                edited_df['Manuelle Anpassung'] = edited_df.apply(lambda row: st.number_input(f"Manuelle Anpassung für Artikel {row['Artikelnummer']}", min_value=0, value=int(row['Bestellvorschlag (ML)'])), axis=1)
+                result_ml_df['Manuelle Anpassung'] = result_ml_df['Bestellvorschlag (ML)'].apply(lambda x: st.number_input(f"Anpassung für Bestellvorschlag (Artikel {x})", min_value=0, value=int(x), step=1))
 
                 # Feedback speichern
                 if st.button("Feedback speichern"):
@@ -132,13 +132,13 @@ def bestellvorschlag_app():
 
                     # Optional: Modell mit den manuellen Anpassungen trainieren
                     if st.checkbox("Modell mit manuellen Anpassungen trainieren"):
-                        model = train_model(edited_df)
+                        model = train_model(result_ml_df)
                         if model:
                             st.success("Modell wurde mit den manuellen Anpassungen trainiert.")
 
                 # Ergebnisse herunterladen
                 output = BytesIO()
-                edited_df.to_excel(output, index=False, engine='openpyxl')
+                result_ml_df.to_excel(output, index=False, engine='openpyxl')
                 output.seek(0)
                 st.download_button(
                     label="Download als Excel",
