@@ -44,6 +44,30 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
+def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
+    def find_best_week_consumption(article_number, abverkauf_df):
+        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
+        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
+
+        if not article_data.empty:
+            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
+            return best_week_row['Menge Aktion']
+        return 0
+
+    bestellvorschläge = []
+    for artikelnummer in artikelnummern:
+        if artikelnummer not in bestand_df['Artikelnummer'].values:
+            continue
+
+        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
+        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
+        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
+        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
+
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    return result_df
+
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
     st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
@@ -114,29 +138,120 @@ def bestellvorschlag_app():
                     file_name="bestellvorschlag_ml.xlsx"
                 )
 
-# Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
-def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
-    def find_best_week_consumption(article_number, abverkauf_df):
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
-        article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
+# Durchschnittliche Abverkaufsmengen App
+def average_sales_app():
+    st.title("Berechnung der Ø Abverkaufsmengen pro Woche von Werbeartikeln zu Normalpreisen")
 
-        if not article_data.empty:
-            best_week_row = article_data.loc[article_data['Menge Aktion'].idxmax()]
-            return best_week_row['Menge Aktion']
-        return 0
+    st.markdown("""
+    ### Anleitung zur Nutzung dieser App
+    1. Bereiten Sie Ihre Abverkaufsdaten vor:
+       - Die Datei muss die Spalten **'Artikel', 'Woche', 'Menge' (in Stück) und 'Name'** enthalten.
+       - Speichern Sie die Datei im Excel-Format.
+    2. Laden Sie Ihre Datei hoch:
+       - Nutzen Sie die Schaltfläche **„Durchsuchen“**, um Ihre Datei auszuwählen.
+    3. Überprüfen Sie die berechneten Ergebnisse:
+       - Die App zeigt die durchschnittlichen Abverkaufsmengen pro Woche an.
+    4. Filtern und suchen Sie die Ergebnisse (optional):
+       - Nutzen Sie das Filterfeld in der Seitenleiste, um nach bestimmten Artikeln zu suchen.
+    5. Vergleichen Sie die Ergebnisse (optional):
+       - Laden Sie eine zweite Datei hoch, um die Ergebnisse miteinander zu vergleichen.
+    """)
 
-    bestellvorschläge = []
-    for artikelnummer in artikelnummern:
-        if artikelnummer not in bestand_df['Artikelnummer'].values:
-            continue
+    # Beispieldatei erstellen
+    example_data = {
+        "Artikel": ["001", "001", "001", "002", "002", "002", "003", "003", "003"],
+        "Name": ["Milch 1L", "Milch 1L", "Milch 1L", "Butter 250g", "Butter 250g", "Butter 250g", "Käse 500g", "Käse 500g", "Käse 500g"],
+        "Woche": [1, 2, 3, 1, 2, 3, 1, 2, 3],
+        "Menge": [100, 120, 110, 150, 140, 160, 200, 210, 190]
+    }
+    example_df = pd.DataFrame(example_data)
+    example_file = BytesIO()
+    example_df.to_excel(example_file, index=False, engine='openpyxl')
+    example_file.seek(0)
+    
+    # Datei-Uploader
+    uploaded_file = st.file_uploader("Bitte laden Sie Ihre Datei hoch (Excel)", type=["xlsx"])
+    
+    # Beispieldatei Download
+    st.sidebar.download_button(
+        label="Beispieldatei herunterladen",
+        data=example_file,
+        file_name="beispiel_abverkauf.xlsx"
+    )
+    
+    if uploaded_file:
+        # Excel-Datei laden und verarbeiten
+        data = pd.ExcelFile(uploaded_file)
+        sheet_name = st.sidebar.selectbox("Wählen Sie das Blatt aus", data.sheet_names)  # Blattauswahl ermöglichen
+        df = data.parse(sheet_name)
 
-        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
-        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
-        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
+        # Erweiterte Datenvalidierung
+        required_columns = {"Artikel", "Woche", "Menge", "Name"}
+        if not required_columns.issubset(df.columns):
+            st.error("Fehler: Die Datei muss die Spalten 'Artikel', 'Woche', 'Menge' und 'Name' enthalten.")
+        elif df.isnull().values.any():
+            st.error("Fehler: Die Datei enthält fehlende Werte. Bitte stellen Sie sicher, dass alle Zellen ausgefüllt sind.")
+        else:
+            # Filter- und Suchmöglichkeiten
+            artikel_filter = st.sidebar.text_input("Nach Artikel filtern (optional)")
+            artikel_name_filter = st.sidebar.text_input("Nach Artikelname filtern (optional)")
 
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
-    return result_df
+            if artikel_filter:
+                df = df[df['Artikel'].astype(str).str.contains(artikel_filter, case=False, na=False)]
+
+            if artikel_name_filter:
+                df = df[df['Name'].str.contains(artikel_name_filter, case=False, na=False)]
+
+            # Durchschnittliche Abverkaufsmengen berechnen
+            result = df.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
+            result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+
+            # Beibehaltung der Originalsortierung
+            result['Original_Index'] = result.index
+            result.sort_values('Original_Index', inplace=True)
+            result.drop(columns=['Original_Index'], inplace=True)
+
+            # Rundungsoptionen für jeden Artikel
+            for index, row in result.iterrows():
+                round_option = st.selectbox(
+                    f"Rundungsoption für Artikel {row['Artikel']}",
+                    ['Nicht runden', 'Aufrunden', 'Abrunden'],
+                    index=0
+                )
+                if round_option == 'Aufrunden':
+                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] + 0.5)
+                elif round_option == 'Abrunden':
+                    result.at[index, 'Durchschnittliche Menge pro Woche'] = round(row['Durchschnittliche Menge pro Woche'] - 0.5)
+
+            # Ergebnisse anzeigen
+            st.subheader("Ergebnisse")
+            st.dataframe(result)
+
+            # Fortschrittsanzeige
+            st.info("Verarbeitung abgeschlossen. Die Ergebnisse stehen zur Verfügung.")
+
+            # Ergebnisse herunterladen
+            output = BytesIO()
+            result.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            st.download_button(
+                label="Ergebnisse herunterladen",
+                data=output,
+                file_name="durchschnittliche_abverkaeufe.xlsx"
+            )
+
+            # Vergleich von Ergebnissen ermöglichen
+            if st.checkbox("Vergleiche mit einer anderen Datei anzeigen"):
+                uploaded_file_compare = st.file_uploader("Vergleichsdatei hochladen (Excel)", type=["xlsx"], key="compare")
+                if uploaded_file_compare:
+                    compare_data = pd.read_excel(uploaded_file_compare)
+                    compare_result = compare_data.groupby(['Artikel', 'Name']).agg({'Menge': 'mean'}).reset_index()
+                    compare_result.rename(columns={'Menge': 'Durchschnittliche Menge pro Woche'}, inplace=True)
+
+                    # Ergebnisse der beiden Dateien nebeneinander anzeigen
+                    st.subheader("Vergleich der beiden Dateien")
+                    merged_results = result.merge(compare_result, on='Artikel', suffixes=('_Original', '_Vergleich'))
+                    st.dataframe(merged_results)
 
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
