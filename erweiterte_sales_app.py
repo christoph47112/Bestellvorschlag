@@ -109,12 +109,6 @@ def bestellvorschlag_app():
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
 
-        # Optional: Trainieren des Modells
-        if st.checkbox("Modell mit neuen Daten trainieren"):
-            model = train_model(abverkauf_df)
-            if model:
-                st.success("Modell wurde mit den neuen Daten trainiert.")
-
         # Vorhersagen treffen mit Machine Learning
         model = load_model()
         if model:
