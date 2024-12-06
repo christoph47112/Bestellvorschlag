@@ -45,7 +45,6 @@ def predict_orders(model, input_data):
     return model.predict(input_data)
 
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
-    bestand_df = pd.DataFrame()  # Initialize to avoid UnboundLocalError
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
         article_data = abverkauf_df[(abverkauf_df['Artikelnummer'] == article_number) | (abverkauf_df['Buchungsartikel'] == article_number)]
@@ -98,6 +97,7 @@ def bestellvorschlag_app():
         # Liste der Artikelnummern
         
     # Dynamische Behandlung von 'Buchungsartikel'
+    if 'bestand_df' in locals() and not bestand_df.empty:
     if 'Buchungsartikel' in bestand_df.columns:
         artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
     else:
