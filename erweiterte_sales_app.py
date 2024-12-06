@@ -98,7 +98,7 @@ def bestellvorschlag_app():
         
     # Dynamische Behandlung von 'Buchungsartikel'
     if 'bestand_df' in locals() and not bestand_df.empty:
-    if 'Buchungsartikel' in bestand_df.columns:
+        if 'Buchungsartikel' in bestand_df.columns:
         artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
     else:
         artikelnummern = bestand_df['Artikelnummer'].dropna().unique()
