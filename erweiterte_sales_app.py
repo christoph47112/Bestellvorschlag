@@ -69,6 +69,8 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
 
     result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    # Artikelname hinzufügen
+    result_df = result_df.merge(bestand_df[['Artikelnummer', 'Name']], on='Artikelnummer', how='left')
     return result_df
 
 # Streamlit App für Bestellvorschlag
