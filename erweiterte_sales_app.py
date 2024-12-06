@@ -59,7 +59,11 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
         if artikelnummer not in bestand_df['Artikelnummer'].values and artikelnummer not in bestand_df['Buchungsartikel'].values:
             continue
 
-        bestand = bestand_df.loc[(bestand_df['Artikelnummer'] == artikelnummer) | (bestand_df['Buchungsartikel'] == artikelnummer), 'Bestand Vortag in Stück (ST)'].values[0]
+        bestand_row = bestand_df.loc[(bestand_df.get('Artikelnummer') == artikelnummer) | (bestand_df.get('Buchungsartikel') == artikelnummer)]
+        if not bestand_row.empty:
+            bestand = bestand_row['Bestand Vortag in Stück (ST)'].values[0]
+        else:
+            bestand = 0
         gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
