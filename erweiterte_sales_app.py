@@ -113,9 +113,11 @@ def bestellvorschlag_app():
             st.warning("Die Abverkaufsdatei enthält nicht die erforderlichen Spalten 'Artikelnummer' oder 'Buchungsartikel' und 'Menge Aktion'. Es wird versucht, die Datei trotzdem zu verarbeiten.")
             # Versuch, alternative Spalten zu verwenden oder Standardwerte zu setzen
             if 'Artikelnummer' not in abverkauf_df.columns:
-                abverkauf_df['Artikelnummer'] = abverkauf_df.iloc[:, 0]  # Erste Spalte als Artikelnummer verwenden
+                abverkauf_df['Artikelnummer'] = abverkauf_df.iloc[:, 0]  # Erste Spalte als Artikelnummer verwenden, falls vorhanden
+            if 'Buchungsartikel' not in abverkauf_df.columns and 'Artikelnummer' in abverkauf_df.columns:
+                abverkauf_df['Buchungsartikel'] = abverkauf_df['Artikelnummer']
             if 'Menge Aktion' not in abverkauf_df.columns:
-                abverkauf_df['Menge Aktion'] = 0  # Standardwert für Menge Aktion setzen
+                abverkauf_df['Menge Aktion'] = 1  # Standardwert für Menge Aktion setzen
 
         result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
         st.dataframe(result_df)
