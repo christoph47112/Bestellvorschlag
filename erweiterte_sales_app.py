@@ -94,7 +94,7 @@ def bestellvorschlag_app():
         bestand_df = pd.read_excel(bestand_file)
 
         # Liste der Artikelnummern
-        artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
+        artikelnummern = pd.concat([bestand_df.get('Artikelnummer', pd.Series()), bestand_df.get('Buchungsartikel', pd.Series())]).dropna().unique()
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
