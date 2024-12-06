@@ -34,6 +34,7 @@ def train_model(train_data):
 # Funktion zum Berechnen der Bestellvorschläge
 def calculate_order_suggestions(data):
     st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
+    st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
     if 'Preis' not in data.columns or 'Werbung' not in data.columns:
         st.error("Die benötigten Spalten 'Preis' und 'Werbung' fehlen in den Daten.")
         return None
