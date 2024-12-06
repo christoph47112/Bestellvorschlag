@@ -46,7 +46,7 @@ def predict_orders(model, input_data):
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
-        article_data = abverkauf_df[(abverkauf_df['Artikelnummer'] == article_number) | (abverkauf_df['Buchungsartikel'] == article_number)]
+        article_data = abverkauf_df[(abverkauf_df.get('Artikelnummer', pd.Series()) == article_number) | (abverkauf_df.get('Buchungsartikel', pd.Series()) == article_number)]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
         if not article_data.empty:
