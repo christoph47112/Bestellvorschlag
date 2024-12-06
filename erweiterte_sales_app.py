@@ -7,8 +7,7 @@ from io import BytesIO
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
-# Hinweis zur Beta-Phase
-st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
+
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
@@ -70,6 +69,8 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
 
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
+    # Hinweis zur Beta-Phase
+    st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
     st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
