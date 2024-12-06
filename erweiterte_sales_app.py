@@ -110,7 +110,7 @@ def bestellvorschlag_app():
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns) and not {'Buchungsartikel', 'Menge Aktion'}.issubset(abverkauf_df.columns):
-            st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' oder 'Buchungsartikel' und 'Menge Aktion' enthalten.")
+            st.warning("Die Abverkaufsdatei enthält nicht die erforderlichen Spalten 'Artikelnummer' oder 'Buchungsartikel' und 'Menge Aktion'. Es wird versucht, die Datei trotzdem zu verarbeiten.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
