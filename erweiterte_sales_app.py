@@ -1,3 +1,9 @@
+import streamlit as st
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import pickle
+from io import BytesIO
+
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
@@ -87,7 +93,7 @@ def bestellvorschlag_app():
         bestand_df = pd.read_excel(bestand_file)
 
         # Liste der Artikelnummern
-        artikelnummern = bestand_df['Artikelnummer'].combine_first(bestand_df['Buchungsartikel']).unique()
+        artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
@@ -263,7 +269,7 @@ def main():
     # Credits und Datenschutz
     st.sidebar.markdown("---")
     st.sidebar.markdown("⚠️ **Hinweis:** Diese Anwendung speichert keine Daten und hat keinen Zugriff auf Ihre Dateien.")
-    st.sidebar.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.**")
+    st.sidebar.markdown("🌟 **Erstellt von Christoph R. Kaiser mit Hilfe von Künstlicher Intelligenz.")
 
 if __name__ == "__main__":
     main()
