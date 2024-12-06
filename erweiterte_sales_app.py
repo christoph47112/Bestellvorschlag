@@ -111,6 +111,14 @@ def bestellvorschlag_app():
         st.subheader("Bestellvorschläge ohne Machine Learning")
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns) and not {'Buchungsartikel', 'Menge Aktion'}.issubset(abverkauf_df.columns):
             st.warning("Die Abverkaufsdatei enthält nicht die erforderlichen Spalten 'Artikelnummer' oder 'Buchungsartikel' und 'Menge Aktion'. Es wird versucht, die Datei trotzdem zu verarbeiten.")
+            # Versuch, alternative Spalten zu verwenden oder Standardwerte zu setzen
+            if 'Artikelnummer' not in abverkauf_df.columns:
+                abverkauf_df['Artikelnummer'] = abverkauf_df.iloc[:, 0]  # Erste Spalte als Artikelnummer verwenden
+            if 'Menge Aktion' not in abverkauf_df.columns:
+                abverkauf_df['Menge Aktion'] = 0  # Standardwert für Menge Aktion setzen
+
+        result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
+        st.dataframe(result_df)
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
