@@ -119,9 +119,7 @@ def bestellvorschlag_app():
 
         result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
         st.dataframe(result_df)
-        else:
-            result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
-            st.dataframe(result_df)
+        
 
         # Optional: Trainieren des Modells
         if st.checkbox("Modell mit neuen Daten trainieren"):
