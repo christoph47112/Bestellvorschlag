@@ -12,6 +12,7 @@ st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechn
 
 # Hinweis zur Beta-Phase
 
+
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
     required_columns = ['Preis', 'Werbung', 'Bestellvorschlag (ML)']
