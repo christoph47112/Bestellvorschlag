@@ -11,7 +11,6 @@ import os
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
 # Hinweis zur Beta-Phase
-st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
 
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
