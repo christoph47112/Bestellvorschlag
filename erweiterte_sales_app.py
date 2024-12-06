@@ -50,8 +50,8 @@ def predict_orders(model, input_data):
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
+    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
+    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
@@ -62,20 +62,14 @@ dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop([
 
     bestellvorschläge = []
     for artikelnummer in artikelnummern:
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         if artikelnummer not in bestand_df['Artikelnummer'].values:
             continue
 
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
         gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
 
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
     result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
     return result_df
 
@@ -85,11 +79,11 @@ def bestellvorschlag_app():
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
+    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
+    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
     2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
+    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
+    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
     3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
@@ -107,20 +101,12 @@ dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop([
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
 
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         # Liste der Artikelnummern
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         artikelnummern = bestand_df['Artikelnummer'].unique()
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
         if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns):
-# Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
             st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
