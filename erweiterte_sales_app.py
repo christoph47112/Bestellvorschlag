@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -95,14 +94,7 @@ def bestellvorschlag_app():
         bestand_df = pd.read_excel(bestand_file)
 
         # Liste der Artikelnummern
-        
-    # Dynamische Behandlung von 'Buchungsartikel'
-    if 'bestand_df' in locals() and not bestand_df.empty:
-        if 'Buchungsartikel' in bestand_df.columns:
         artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
-    else:
-        artikelnummern = bestand_df['Artikelnummer'].dropna().unique()
-    
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
@@ -282,62 +274,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# Verbesserungen hinzugefügt:
-# 1. Automatische Spaltenanpassung für Bestand- und Abverkaufsdateien
-# 2. Fehlerbehandlung für fehlende oder unerwartete Spalten
-# 3. Berechnung der Bestellvorschläge mit flexibler Spaltenerkennung
-
-# Automatische Spaltenanpassung
-def preprocess_dataframes(bestand_df, abverkauf_df):
-    if 'Artikelnummer' not in bestand_df.columns:
-        for col in bestand_df.columns:
-            if 'artikel' in col.lower():
-                bestand_df.rename(columns={col: 'Artikelnummer'}, inplace=True)
-                break
-    if 'Endbestand' not in bestand_df.columns:
-        for col in bestand_df.columns:
-            if 'bestand' in col.lower():
-                bestand_df.rename(columns={col: 'Endbestand'}, inplace=True)
-                break
-    if 'Artikelnummer' not in bestand_df.columns or 'Endbestand' not in bestand_df.columns:
-        raise ValueError("Die Bestandsdatei muss 'Artikelnummer' und 'Endbestand' enthalten.")
-
-    if 'Artikelnummer' not in abverkauf_df.columns:
-        for col in abverkauf_df.columns:
-            if 'artikel' in col.lower():
-                abverkauf_df.rename(columns={col: 'Artikelnummer'}, inplace=True)
-                break
-    if 'Artikelnummer' not in abverkauf_df.columns:
-        raise ValueError("Die Abverkaufsdatei muss 'Artikelnummer' enthalten.")
-
-    day_columns = ['MO', 'DI', 'MI', 'DO', 'FR', 'SA']
-    for day in day_columns:
-        if day not in abverkauf_df.columns:
-            abverkauf_df[day] = 0
-
-    return bestand_df, abverkauf_df
-
-# Berechnung der Bestellvorschläge
-def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
-    def find_best_week_consumption(article_number, abverkauf_df):
-        consumption_columns = [col for col in ['MO', 'DI', 'MI', 'DO', 'FR', 'SA'] if col in abverkauf_df.columns]
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
-        if not article_data.empty and consumption_columns:
-            article_data['Menge Aktion'] = article_data[consumption_columns].sum(axis=1)
-            return article_data['Menge Aktion'].max()
-        return 0
-
-    bestellvorschläge = []
-    for artikelnummer in artikelnummern:
-        bestand_row = bestand_df[bestand_df['Artikelnummer'] == artikelnummer]
-        bestand = bestand_row['Endbestand'].values[0] if not bestand_row.empty else 0
-        gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
-        bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
-
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
-    if 'Artikelbezeichnung' in bestand_df.columns:
-        result_df = result_df.merge(bestand_df[['Artikelnummer', 'Artikelbezeichnung']], on='Artikelnummer', how='left')
-    return result_df
