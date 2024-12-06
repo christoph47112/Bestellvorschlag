@@ -95,7 +95,13 @@ def bestellvorschlag_app():
         bestand_df = pd.read_excel(bestand_file)
 
         # Liste der Artikelnummern
+        
+    # Dynamische Behandlung von 'Buchungsartikel'
+    if 'Buchungsartikel' in bestand_df.columns:
         artikelnummern = pd.concat([bestand_df['Artikelnummer'], bestand_df['Buchungsartikel']]).dropna().unique()
+    else:
+        artikelnummern = bestand_df['Artikelnummer'].dropna().unique()
+    
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
