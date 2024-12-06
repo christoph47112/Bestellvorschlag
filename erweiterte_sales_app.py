@@ -51,8 +51,7 @@ def predict_orders(model, input_data):
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
     # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
+    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
         if not article_data.empty:
@@ -80,11 +79,9 @@ def bestellvorschlag_app():
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
     # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
-    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
+    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
     # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer', *dataframe.columns.drop(['Artikelname', 'Artikelnummer'])]]
-    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
+    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
     6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
