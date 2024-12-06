@@ -50,8 +50,7 @@ def predict_orders(model, input_data):
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
-    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
+        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
         if not article_data.empty:
@@ -69,7 +68,7 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
 
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Artikelname', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
     return result_df
 
 # Streamlit App für Bestellvorschlag
@@ -78,10 +77,8 @@ def bestellvorschlag_app():
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
-    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
-    # Sicherstellen, dass der Artikelname links der Artikelnummer angezeigt wird
-    dataframe = dataframe[['Artikelname', 'Artikelnummer'] + [col for col in dataframe.columns if col not in ['Artikelname', 'Artikelnummer']]]
+    2. **Abverkaufsdaten hochladen**: Laden Sie die Abverkaufsdaten als Excel-Datei hoch. Diese Datei sollte die Spalten 'Preis', 'Werbung' und 'Artikelnummer' enthalten.
+    3. **Bestände hochladen**: Laden Sie die Bestände als Excel-Datei hoch. Diese Datei sollte mindestens die Spalten 'Artikelnummer' und 'Bestand Vortag in Stück (ST)' enthalten.
     4. Optional: Trainieren Sie das Modell mit den neuen Abverkaufsdaten, indem Sie die Checkbox aktivieren.
     5. Der Bestellvorschlag wird berechnet und kann anschließend als Excel-Datei heruntergeladen werden.
     6. Anpassungen: Passen Sie die Bestellvorschläge an und speichern Sie die Anpassungen, damit das Modell lernen kann.
@@ -107,7 +104,9 @@ def bestellvorschlag_app():
             st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
-            st.dataframe(result_df)
+            result_df['Artikelnummer'] = result_df['Artikelnummer'].astype(int)
+    result_df['Artikelnummer'] = result_df['Artikelnummer'].astype(int)
+    st.dataframe(result_df)
 
         # Optional: Trainieren des Modells
         if st.checkbox("Modell mit neuen Daten trainieren"):
@@ -125,7 +124,7 @@ def bestellvorschlag_app():
                 input_data = abverkauf_df[['Preis', 'Werbung']]
                 predictions = predict_orders(model, input_data)
                 abverkauf_df['Bestellvorschlag (ML)'] = predictions
-                result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
+                result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df[['Artikelnummer', 'Artikelname']], on='Artikelnummer', how='left')
 
                 # Interaktive Anpassung in der Tabelle
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
