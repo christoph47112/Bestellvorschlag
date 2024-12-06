@@ -68,7 +68,7 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
 
-    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Artikelname', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
+    result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
     return result_df
 
 # Streamlit App für Bestellvorschlag
@@ -104,9 +104,7 @@ def bestellvorschlag_app():
             st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
-            result_df['Artikelnummer'] = result_df['Artikelnummer'].astype(int)
-    result_df['Artikelnummer'] = result_df['Artikelnummer'].astype(int)
-    st.dataframe(result_df)
+            st.dataframe(result_df)
 
         # Optional: Trainieren des Modells
         if st.checkbox("Modell mit neuen Daten trainieren"):
@@ -124,7 +122,7 @@ def bestellvorschlag_app():
                 input_data = abverkauf_df[['Preis', 'Werbung']]
                 predictions = predict_orders(model, input_data)
                 abverkauf_df['Bestellvorschlag (ML)'] = predictions
-                result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df[['Artikelnummer', 'Artikelname']], on='Artikelnummer', how='left')
+                result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
 
                 # Interaktive Anpassung in der Tabelle
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
