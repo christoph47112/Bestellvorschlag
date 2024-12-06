@@ -1,12 +1,3 @@
-import streamlit as st
-import pandas as pd
-from sklearn.linear_model import LinearRegression
-import pickle
-from io import BytesIO
-import matplotlib.pyplot as plt
-import seaborn as sns
-import os
-
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
@@ -50,7 +41,7 @@ def predict_orders(model, input_data):
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
-        article_data = abverkauf_df[abverkauf_df['Artikelnummer'] == article_number]
+        article_data = abverkauf_df[(abverkauf_df['Artikelnummer'] == article_number) | (abverkauf_df['Buchungsartikel'] == article_number)]
         article_data['Menge Aktion'] = pd.to_numeric(article_data['Menge Aktion'], errors='coerce')
 
         if not article_data.empty:
@@ -60,10 +51,10 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
 
     bestellvorschläge = []
     for artikelnummer in artikelnummern:
-        if artikelnummer not in bestand_df['Artikelnummer'].values:
+        if artikelnummer not in bestand_df['Artikelnummer'].values and artikelnummer not in bestand_df['Buchungsartikel'].values:
             continue
 
-        bestand = bestand_df.loc[bestand_df['Artikelnummer'] == artikelnummer, 'Bestand Vortag in Stück (ST)'].values[0]
+        bestand = bestand_df.loc[(bestand_df['Artikelnummer'] == artikelnummer) | (bestand_df['Buchungsartikel'] == artikelnummer), 'Bestand Vortag in Stück (ST)'].values[0]
         gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
         bestellvorschläge.append((artikelnummer, gesamtverbrauch, bestand, bestellvorschlag))
@@ -96,12 +87,12 @@ def bestellvorschlag_app():
         bestand_df = pd.read_excel(bestand_file)
 
         # Liste der Artikelnummern
-        artikelnummern = bestand_df['Artikelnummer'].unique()
+        artikelnummern = bestand_df['Artikelnummer'].combine_first(bestand_df['Buchungsartikel']).unique()
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
-        if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns):
-            st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' und 'Menge Aktion' enthalten.")
+        if not {'Artikelnummer', 'Menge Aktion'}.issubset(abverkauf_df.columns) and not {'Buchungsartikel', 'Menge Aktion'}.issubset(abverkauf_df.columns):
+            st.error("Die Abverkaufsdatei muss die Spalten 'Artikelnummer' oder 'Buchungsartikel' und 'Menge Aktion' enthalten.")
         else:
             result_df = berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor)
             st.dataframe(result_df)
@@ -122,7 +113,7 @@ def bestellvorschlag_app():
                 input_data = abverkauf_df[['Preis', 'Werbung']]
                 predictions = predict_orders(model, input_data)
                 abverkauf_df['Bestellvorschlag (ML)'] = predictions
-                result_ml_df = abverkauf_df[['Artikelnummer', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on='Artikelnummer', how='left')
+                result_ml_df = abverkauf_df[['Artikelnummer', 'Buchungsartikel', 'Preis', 'Werbung', 'Bestellvorschlag (ML)']].merge(bestand_df, on=['Artikelnummer', 'Buchungsartikel'], how='left')
 
                 # Interaktive Anpassung in der Tabelle
                 st.subheader("Passen Sie die Bestellvorschläge interaktiv an")
