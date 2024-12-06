@@ -41,6 +41,19 @@ def load_model():
 def predict_orders(model, input_data):
     return model.predict(input_data)
 
+# Automatische Spaltenanpassung
+def preprocess_dataframes(bestand_df, abverkauf_df):
+    # Spaltenabgleich für Bestand
+    if 'Artikelnummer' not in bestand_df.columns:
+        raise ValueError("Die Bestandsdatei muss 'Artikelnummer' enthalten.")
+    if 'Endbestand' not in bestand_df.columns:
+        bestand_df.rename(columns={'Ihr_Endbestand_Spaltenname': 'Endbestand'}, inplace=True)
+
+    # Spaltenabgleich für Abverkauf
+    if 'Artikelnummer' not in abverkauf_df.columns:
+        abverkauf_df.rename(columns={'Ihr_Artikelnummer_Spaltenname': 'Artikelnummer'}, inplace=True)
+    return bestand_df, abverkauf_df
+
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, sicherheitsfaktor=0.1):
     def find_best_week_consumption(article_number, abverkauf_df):
@@ -105,6 +118,9 @@ def bestellvorschlag_app():
     if abverkauf_file and bestand_file:
         abverkauf_df = pd.read_excel(abverkauf_file)
         bestand_df = pd.read_excel(bestand_file)
+
+        # Automatische Spaltenanpassung
+        bestand_df, abverkauf_df = preprocess_dataframes(bestand_df, abverkauf_df)
 
         # Berechnung der Bestellvorschläge ohne Machine Learning
         st.subheader("Bestellvorschläge ohne Machine Learning")
