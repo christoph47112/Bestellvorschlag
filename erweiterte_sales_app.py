@@ -10,6 +10,9 @@ import os
 # Page Configuration
 st.set_page_config(page_title="Bestellvorschlag mit Machine Learning und Berechnung der Ø Abverkaufsmengen", layout="wide")
 
+# Hinweis zur Beta-Phase
+st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
+
 # Funktion zum Trainieren des Modells
 def train_model(train_data):
     required_columns = ['Preis', 'Werbung', 'Bestellvorschlag (ML)']
@@ -26,30 +29,23 @@ def train_model(train_data):
     model.fit(X, y)
 
     # Modell speichern
-    with open("bestellvorschlag_model.pkl", "wb") as f:
-        pickle.dump(model, f)
+    with open('/mnt/data/model.pkl', 'wb') as file:
+        pickle.dump(model, file)
 
-    st.success("Modell wurde erfolgreich trainiert und gespeichert.")
+    return model
 
-# Funktion zum Berechnen der Bestellvorschläge
-def calculate_order_suggestions(data):
-    st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
-    st.warning("⚠️ Hinweis: Dieses Modul zur Berechnung der Bestellvorschläge befindet sich derzeit in der Beta-Phase. Feedback und Verbesserungsvorschläge sind willkommen!")
-    if 'Preis' not in data.columns or 'Werbung' not in data.columns:
-        st.error("Die benötigten Spalten 'Preis' und 'Werbung' fehlen in den Daten.")
-        return None
-
+# Funktion zum Laden des Modells
+def load_model():
     try:
-        with open("bestellvorschlag_model.pkl", "rb") as f:
-            model = pickle.load(f)
+        with open('/mnt/data/model.pkl', 'rb') as file:
+            return pickle.load(file)
     except FileNotFoundError:
-        st.error("Das Modell wurde nicht gefunden. Bitte trainieren Sie zuerst das Modell.")
+        st.warning("Kein trainiertes Modell gefunden. Bitte trainieren Sie das Modell zuerst.")
         return None
 
-    X = data[['Preis', 'Werbung']]
-    data['Bestellvorschlag (ML)'] = model.predict(X)
-    st.success("Bestellvorschläge wurden erfolgreich berechnet.")
-    return data
+# Vorhersagefunktion
+def predict_orders(model, input_data):
+    return model.predict(input_data)
 
 # Funktion zur Berechnung der Bestellvorschläge ohne Machine Learning
 def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherheitsfaktor=0.1):
