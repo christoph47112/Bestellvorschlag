@@ -67,7 +67,7 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
         gesamtverbrauch = find_best_week_consumption(artikelnummer, abverkauf_df)
         artikelname = abverkauf_df.loc[abverkauf_df['Artikelnummer'] == artikelnummer, 'Artikelname'].values[0]
         bestellvorschlag = max(gesamtverbrauch * (1 + sicherheitsfaktor) - bestand, 0)
-        bestellvorschläge.append((artikelnummer, artikelname, gesamtverbrauch, bestand, bestellvorschlag))
+        bestellvorschläge.append((int(artikelnummer), artikelname, gesamtverbrauch, bestand, bestellvorschlag))
 
     result_df = pd.DataFrame(bestellvorschläge, columns=['Artikelnummer', 'Artikelname', 'Gesamtverbrauch', 'Aktueller Bestand', 'Bestellvorschlag'])
     return result_df
