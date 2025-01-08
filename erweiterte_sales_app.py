@@ -75,7 +75,7 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
 
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung mit und ohne Machine Learning")
+    st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
@@ -240,7 +240,7 @@ def average_sales_app():
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
     st.sidebar.title("Modul wechseln")
-    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit und ohne Machine Learning", "Durchschnittliche Abverkaufsmengen"])
+    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
 
     if app_selection == "Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden":
         bestellvorschlag_app()
