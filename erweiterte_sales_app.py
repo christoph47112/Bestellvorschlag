@@ -75,7 +75,7 @@ def berechne_bestellvorschlag(bestand_df, abverkauf_df, artikelnummern, sicherhe
 
 # Streamlit App für Bestellvorschlag
 def bestellvorschlag_app():
-    st.title("Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden")
+    st.title("Bestellvorschlag Berechnung mit und ohne Machine Learning")
     st.markdown("""
     ### Anleitung zur Nutzung des Bestellvorschlag-Moduls
     1. **Wochenordersatz hochladen**: Laden Sie den Wochenordersatz als PDF-Datei hoch.
