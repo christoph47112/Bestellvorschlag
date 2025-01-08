@@ -240,7 +240,7 @@ def average_sales_app():
 # Hauptprogramm zur Ausführung der MultiApp
 def main():
     st.sidebar.title("Modul wechseln")
-    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden", "Durchschnittliche Abverkaufsmengen"])
+    app_selection = st.sidebar.radio("Wähle ein Modul:", ["Bestellvorschlag Berechnung mit und ohne Machine Learning", "Durchschnittliche Abverkaufsmengen"])
 
     if app_selection == "Bestellvorschlag Berechnung mit Machine Learning und klassischen Methoden":
         bestellvorschlag_app()
